@@ -1,0 +1,9 @@
+* ACETONE Authors:
+**************************************************
+Main authors:
+  Iryna DE ALBUQUERQUE SILVA: Iryna DOT De UNDERSCORE Albuquerque UNDERSCORE Silva AT onera DOT fr
+  Thomas CARLE              : Thomas DOT Carle AT irit DOT fr
+  Adrien GAUFFRIAU          : Adrien DOT Gauffriau AT airbus DOT com
+  Claire PAGETTI            : Claire DOT Pagetti AT onera DOT fr
+  
+**************************************************
