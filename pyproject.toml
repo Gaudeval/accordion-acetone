@@ -1,0 +1,62 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "acetone-nn"
+version = "0.0.1.dev1"
+requires-python = ">=3.8"
+authors = [
+    { name="Iryna DE ALBUQUERQUE SILVA", email="Iryna.De_Albuquerque_Silva@onera.fr" },
+    { name="Thomas CARLE", email="Thomas.Carle@irit.fr" },
+    { name="Adrien GAUFFRIAU", email="Adrien.Gauffriau@airbus.com" },
+    { name="Claire PAGETTI", email="Claire.Pagetti@onera.fr" },
+]
+description = "Predictable programming framework for ML applications in safety-critical systems."
+readme = "README.md"
+license = {file = "LICENSE.txt"}
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: C",
+    "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+    "Topic :: Software Development :: Code Generators",
+    "Topic :: Software Development :: Embedded Systems",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+# TODO Reorganise folder to follow src layout and declare package
+# See tip https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html
+#[tool.setuptools]
+#packages = ["my_package"]
+
+# Declare requirements
+# https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#dependencies-and-requirements
+# TODO Check the need to duplicate the requirements.txt contents
+# TODO Check the need for dev optional dependencies
+# [project]
+#dependencies = [
+#  "httpx",
+#  "gidgethub[httpx]>4.0.0",
+#  "django>2.1; os_name != 'nt'",
+#  "django>2.0; os_name == 'nt'",
+#]
+#[project.optional-dependencies]
+#gui = ["PyQt5"]
+#cli = [
+#  "rich",
+#  "click",
+#]
+[project.optional-dependencies]
+dev = []
+
+# Declare executable scripts to be installed
+# https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#creating-executable-scripts
+#[project.scripts]
+#spam-cli = "spam:main_cli"
+
+[project.urls]
+"Homepage" = "https://github.com/idealbuq/NNCodeGenerator"
+"Bug Tracker" = "https://github.com/idealbuq/NNCodeGenerator/issues"
