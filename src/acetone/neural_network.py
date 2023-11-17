@@ -454,7 +454,7 @@ class CodeGenerator_V1(CodeGenerator):
         self.header_file.write('    '+ self.data_type + ' (*actv_function)('+ self.data_type +');\n};\n')
         self.header_file.write('\n')
 
-        self.header_file.write('struct layer net[nb_layers];\n\n')
+        self.header_file.write('extern struct layer net[nb_layers];\n\n')
         self.header_file.write('int inference('+ self.data_type +' *prediction, '+ self.data_type +' *nn_input);\n\n')
         self.header_file.write('#endif')
     
