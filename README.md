@@ -3,7 +3,7 @@ It aims to reproduce the experiments done to verify the semantic preservation (s
 First, a minimal reproducible example is created. Then, instructions are given so some of the results of the paper can be verified. 
 
 I) INSTALLATION (for Linux OS)
-------------------------------
+==============================
 
 (a) Install Docker following the instructions at https://docs.docker.com/get-docker/
 
@@ -11,20 +11,33 @@ I) INSTALLATION (for Linux OS)
 
 (c) Load the artifact_ecrts22_2_codegen image by typing the following command in the directory where the tar.gz file was downloaded:
 
-$ docker load < artifact_ecrts22_2_codegen.tar.gz
+`$ docker load < artifact_ecrts22_2_codegen.tar.gz`
 
 (d) Run the docker image and start a bash session inside the docker by typing the following command:
 
-$ docker run -v [PATH_SHARED]:/home/NNCodeGenerator/shared --name artifact_ecrts22_2_codegen_bash -i -t artifact_ecrts22_2_codegen bash
+`$ docker run -v [PATH_SHARED]:/home/NNCodeGenerator/shared --name artifact_ecrts22_2_codegen_bash -i -t artifact_ecrts22_2_codegen bash`
 
 where PATH_SHARED is the folder of your host machine that will be shared with the docker container. 
 The result files can be stored in this shared folder.
     
 NOTE 1: to exit the Docker container simply type exit. To restart it simply do
-$ docker restart aec_ecrts22_paper36_codegen_bash
+`$ docker restart aec_ecrts22_paper36_codegen_bash`
+
+I) INSTALLATION (for development)
+=================================
+
+Install the package in development mode
+
+```commandline
+$ cd /path/to/accordion-acetone
+$ python -m venv .venv
+# Activate your virtual environment
+$ pip install --editable .
+```
+
 
 II) CODE ORGANIZATION
----------------------
+=====================
 
 In the home directory there are a few files regarding the license and copyright information of the present artifact, to know:
 - AUTHORS.txt
@@ -41,18 +54,19 @@ Inside the directory NNCodeGenerator of the Docker container there are five fold
 - shared, which will contain the files to be shared with host machine.
 
 III) MINIMAL REPRODUCIBLE EXAMPLE
----------------------------------
+=================================
 
 The following sequence of commands allows to generate the C code corresponding to the LeNet-5 neural network architecture with both Keras2C and our framework (namely ACETONE),
 execute one inference and compare the results.
 
 III.1. Generate a neural network example model
+----------------------------------------------
 
 First, go to the init directory:
-$ cd NNCodeGenerator/init/
+`$ cd NNCodeGenerator/init/`
 
 And execute the following command :
-$ python3 initial_setup.py
+`$ python3 initial_setup.py`
 
 This script first defines a model reproducing the Lenet-5 architecture, using the training framework Keras.
 Afterward it saves this description in both h5 and JSON formats, which will be used as input for Keras2C and our framework, respectively.
@@ -62,9 +76,10 @@ Finally, this script prints and saves the result obtained when doing one forward
 Please note that this generated model was not trained, i.e., the weights and biases are randomly initialized values. That is not harmful as for this example we are interested in verifying that the forward-pass executes correctly.
 
 Go back to /home/NNCodeGenerator/ :
-$ cd ..
+`$ cd ..`
 
 III.2. C code generation with Keras2C:
+--------------------------------------
 
 In order to generate the C code for the model reproducing the LeNet-5 architecture with Keras2C, compile and execute it, use the following commands:
 
@@ -87,6 +102,7 @@ In order to generate the C code for the model reproducing the LeNet-5 architectu
 		$ cd ../..
 
 III.3. C code generation with ACETONE:
+--------------------------------------
 
 Afterward, we can do the same experiment with our framework, for each one of the three versions. For the first version, follow:
 
@@ -122,9 +138,10 @@ Equally, for version 3, follow:
 NOTE 2: the code of version 3 takes a little longer to be compiled.
 
 V) REPRODUCTION OF PAPER'S EXPERIMENTS
---------------------------------------
+======================================
 
 V.1. Semantic preservation of C code generated with Keras2C:
+------------------------------------------------------------
 
 In order to reproduce the results for semantic preservation for model acas_decr128, present in Table 1, use the following commands:
 	$ cd framework/keras2c
@@ -145,6 +162,7 @@ Leave the Keras2C directory:
 	$ cd ..
 
 V.2. Semantic preservation of C code generated with ACETONE:
+------------------------------------------------------------
 
 To reproduce the results for semantic preservation for model acas_decr128, now with our framework, use the following commands:
 	
@@ -164,42 +182,44 @@ Same can be done to obtain the results for semantic preservation for the trained
 
 Copy all the generated C code to the shared folder for deeper investigation:
 
-$ cd ../..
-$ cp -r ./output/ ./shared/
+    $ cd ../..
+    $ cp -r ./output/ ./shared/
 
 
 VI) GENERAL INFORMATION
------------------------
+=======================
+
 NOTE 3: Output of Keras2C framework help:
-$ python3 -m keras2c -h 
-usage: keras2c [-h] [-m] [-t] model_path function_name test_dataset_path 
+    
+    $ python3 -m keras2c -h 
+    usage: keras2c [-h] [-m] [-t] model_path function_name test_dataset_path 
 
-A library for converting the forward pass (inference) part of a keras model to a C function
+    A library for converting the forward pass (inference) part of a keras model to a C function
 
-positional arguments:
-model_path         File path to saved keras .h5 model file
-function_name      What to name the resulting C function
-test_dataset_path  File path to testing inputs
+    positional arguments:
+    model_path         File path to saved keras .h5 model file
+    function_name      What to name the resulting C function
+    test_dataset_path  File path to testing inputs
 
-optional arguments:
--h, --help         show this help message and exit
--m, --malloc       Use dynamic memory for large arrays. Weights will be saved to .csv files that will be loaded at runtime
--t , --num_tests   Number of tests to generate. Default is 10
+    optional arguments:
+    -h, --help         show this help message and exit
+    -m, --malloc       Use dynamic memory for large arrays. Weights will be saved to .csv files that will be loaded at runtime
+    -t , --num_tests   Number of tests to generate. Default is 10
 
 NOTE 4: Output of the ACETONE framework help:
-$ python3 main.py -h
-usage: main.py [-h] model_file test_dataset_file function_name nb_tests version output_dir
+    
+    $ python3 main.py -h
+    usage: main.py [-h] model_file test_dataset_file function_name nb_tests version output_dir
 
-C code generator for Neural Networks 
+    C code generator for Neural Networks 
 
-positional arguments:
-  model_file         Input file that describes the neural network model
-  test_dataset_file  Input file that contains test data				  
-  function_name      Name of the generated function				  
-  nb_tests           Number of inferences process to run
-  version            Version to be used for the code generation
-  output_dir         Output directory where generated files will be written
+    positional arguments:
+      model_file         Input file that describes the neural network model
+      test_dataset_file  Input file that contains test data				  
+      function_name      Name of the generated function				  
+      nb_tests           Number of inferences process to run
+      version            Version to be used for the code generation
+      output_dir         Output directory where generated files will be written
 
-optional arguments:
--h, --help         show this help message and exit
-
+    optional arguments:
+      -h, --help         show this help message and exit
