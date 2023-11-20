@@ -175,7 +175,7 @@ class InputLayer(Layers):
 
     def write_to_layer_c_files(self, data_type, version, layers_source_file, layers_header_file):
 
-        if version == 'v1':
+        if version == 'v1' or version == 'v4':
             layers_source_file.write('int Input_layer(int layer_idx, ' + data_type + ' *input, '+ data_type + ' *output) \n{ \n')
             layers_source_file.write('    for (int i = 0; i < net[layer_idx].layer_size; ++i) \n    { \n')
             layers_source_file.write('        output[i] = input[i]; \n    } \n\n')
@@ -198,14 +198,14 @@ class InputLayer(Layers):
 
     def write_to_function_header_file(self, version, header_file):
         
-        if version == 'v1':
+        if version == 'v1' or version == 'v4':
             header_file.write('#define l0_size ' + str(self.size) + '\n\n')
 
         return    
 
     def write_to_globalvars_file(self, version, data_type, globalvars_file):
         
-        if version == 'v1':
+        if version == 'v1' or version == 'v4':
             
             globalvars_file.write('    [0] = {\n')
             globalvars_file.write('        .layer_type = Input_layer,\n')
@@ -239,7 +239,7 @@ class InputLayer(Layers):
 
         self.version = version
 
-        if self.version == 'v1':
+        if self.version == 'v1' or version == 'v4':
             
             values_loop_layer_size = ['for loop', 'i', ('l'+str(self.idx)+'_size'), 0, self.size - 1]  
             self.list_of_values_loops = [values_loop_layer_size]
@@ -267,7 +267,7 @@ class Dense(Layers):
 
     def write_to_layer_c_files(self, data_type, version, layers_source_file, layers_header_file):
         
-        if version == 'v1':
+        if version == 'v1' or version == 'v4':
 
 
             layers_source_file.write('int Dense(int layer_idx, ' + data_type + ' *input, '+ data_type + ' *output) \n{ \n')
@@ -316,7 +316,7 @@ class Dense(Layers):
 
     def write_to_function_header_file(self, version, header_file):
         
-        if version == 'v1':
+        if version == 'v1' or version == 'v4':
             header_file.write('#define l'+str(self.idx)+'_size ' + str(self.size) + '\n\n')
 
         else:
@@ -324,7 +324,7 @@ class Dense(Layers):
 
     def write_to_globalvars_file(self, version, data_type, globalvars_file):
       
-        if version == 'v1':
+        if version == 'v1' or version == 'v4':
 
             globalvars_file.write('    ['+str(self.idx)+'] = {\n' )
             globalvars_file.write('        .layer_type = Dense,\n')
@@ -357,7 +357,7 @@ class Dense(Layers):
         
         self.version = version
 
-        if self.version == 'v1':
+        if self.version == 'v1' or version == 'v4':
             
         
             values_loop_layer_size = ['for loop', 'i', ('l'+str(self.idx)+'_size'), 0, (self.size - 1), []]
@@ -406,7 +406,7 @@ class Conv2D(Layers):
 
     def write_to_layer_c_files(self, data_type, version, layers_source_file, layers_header_file):
 
-        if version == 'v1':
+        if version == 'v1' or version == 'v4':
             
             layers_source_file.write('int Conv2D(int layer_idx, ' + data_type + ' *input, '+ data_type + ' *output) \n{ \n')
             layers_source_file.write('    '+ data_type + ' sum;\n\n')
@@ -428,23 +428,42 @@ class Conv2D(Layers):
 
             layers_header_file.write('int Conv2D(int layer_idx, ' + data_type + ' *input, '+ data_type + ' *output);\n')
         elif version == 'v4':
-            layers_source_file.write( 'int Conv2D(int layer_idx, ' + data_type + ' *input, ' + data_type + ' *output) \n{ \n')
-            layers_source_file.write('    ' + data_type + ' sum;\n\n')
-            layers_source_file.write('    for (int f = 0; f < net[layer_idx].nb_filters; ++f)\n    {\n')
-            layers_source_file.write('        for (int i = 0; i < net[layer_idx].output_height; ++i)\n        {\n')
-            layers_source_file.write('            for (int j = 0; j < net[layer_idx].output_width; ++j)\n            {\n')
-            layers_source_file.write('                sum = 0;\n')
-            layers_source_file.write('                for (int c = 0; c < net[layer_idx].input_channels; ++c)\n                {\n')
-            layers_source_file.write('                    for (int m = 0; m < net[layer_idx].kernel_size; ++m)\n                    {\n')
-            layers_source_file.write('                        for (int n = 0; n < net[layer_idx].kernel_size; ++n)\n                        {\n')
-            layers_source_file.write('                            int ii = i*net[layer_idx].strides + m*net[layer_idx].dilation_rate - net[layer_idx].pad_left;\n')
-            layers_source_file.write('                            int jj = j*net[layer_idx].strides + n*net[layer_idx].dilation_rate - net[layer_idx].pad_top;\n\n')
-            layers_source_file.write('                            if (ii >= 0 && ii < net[layer_idx].input_height && jj >= 0 && jj < net[layer_idx].input_width)\n                            {\n')
-            layers_source_file.write('                                sum += input[(ii*net[layer_idx].input_width + jj)*net[layer_idx].input_channels + c] * net[layer_idx].weights[((m*net[layer_idx].kernel_size + n)*net[layer_idx].input_channels + c)*net[layer_idx].nb_filters + f];\n')
-            layers_source_file.write('                            }\n                        }\n                    }\n                }\n')
-            layers_source_file.write('                sum += net[layer_idx].biases[f];\n')
-            layers_source_file.write('                output[(i*net[layer_idx].output_width + j)*net[layer_idx].nb_filters + f] = net[layer_idx].actv_function(sum);\n')
-            layers_source_file.write('            }\n        }\n    }\n\n    return 0;\n}\n\n')
+            layers_source_file.write(f"""
+            int Conv2D(int layer_idx, {data_type}  *input, {data_type} *output) 
+            {{
+                {data_type} sum;
+           
+                for (int f = 0; f < net[layer_idx].nb_filters; ++f)
+                {{
+                    for (int i = 0; i < net[layer_idx].output_height; ++i)
+                    {{
+                        for (int j = 0; j < net[layer_idx].output_width; ++j)
+                        {{
+                            sum = 0;
+                            for (int c = 0; c < net[layer_idx].input_channels; ++c)
+                            {{
+                                for (int m = 0; m < net[layer_idx].kernel_size; ++m)
+                                {{
+                                    for (int n = 0; n < net[layer_idx].kernel_size; ++n)
+                                    {{
+                                        int ii = i*net[layer_idx].strides + m*net[layer_idx].dilation_rate - net[layer_idx].pad_left;
+                                        int jj = j*net[layer_idx].strides + n*net[layer_idx].dilation_rate - net[layer_idx].pad_top;
+                                       
+                                        if (ii >= 0 && ii < net[layer_idx].input_height && jj >= 0 && jj < net[layer_idx].input_width)
+                                        {{
+                                            sum += input[(ii*net[layer_idx].input_width + jj)*net[layer_idx].input_channels + c] * net[layer_idx].weights[((m*net[layer_idx].kernel_size + n)*net[layer_idx].input_channels + c)*net[layer_idx].nb_filters + f];
+                                        }}
+                                    }}
+                                }}
+                            }}
+                            sum += net[layer_idx].biases[f];
+                            output[(i*net[layer_idx].output_width + j)*net[layer_idx].nb_filters + f] = net[layer_idx].actv_function(sum);
+                        }}
+                    }}
+                }}
+                
+                return 0;
+            }}""")
 
             layers_header_file.write('int Conv2D(int layer_idx, ' + data_type + ' *input, ' + data_type + ' *output);\n')
 
@@ -573,7 +592,7 @@ class Conv2D(Layers):
         
         self.version = version
 
-        if self.version == 'v1':
+        if self.version == 'v1' or version == 'v4':
             
         
             values_loop_filters = ['for loop', 'f', 'nb_filters', 0, (self.nb_filters - 1), []]
@@ -623,7 +642,7 @@ class Pooling2D(Layers):
 
     def write_to_layer_c_files(self, data_type, version, layers_source_file, layers_header_file):
 
-        if version == 'v1':
+        if version == 'v1' or version == 'v4':
 
             layers_source_file.write('int ' + self.name + '(int layer_idx, ' + data_type + ' *input, '+ data_type + ' *output) \n{ \n')
 
@@ -708,7 +727,7 @@ class Pooling2D(Layers):
 
     def write_to_function_header_file(self, version, header_file):
         
-        if version == 'v1':
+        if version == 'v1' or version == 'v4':
 
             header_file.write('#define l'+str(self.idx)+'_size ' + str(self.size) + '\n')
             header_file.write('#define l'+str(self.idx)+'_pad_right ' + str(self.pad_right) + '\n')
@@ -725,7 +744,7 @@ class Pooling2D(Layers):
 
     def write_to_globalvars_file(self, version, data_type, globalvars_file):
 
-        if version == 'v1':
+        if version == 'v1' or version == 'v4':
             
             globalvars_file.write('    ['+str(self.idx)+'] = {\n')
             globalvars_file.write('        .layer_type = '+ self.name +',\n')
@@ -769,7 +788,7 @@ class Pooling2D(Layers):
         
         self.version = version
 
-        if self.version == 'v1':
+        if self.version == 'v1' or version == 'v4':
         
             values_loop_input_channels = ['for loop', 'c', 'input_channels', 0, (self.input_channels - 1), []]
             values_loop_output_height = ['for loop', 'i', 'output_height', 0, (self.output_height - 1), []]
@@ -871,7 +890,7 @@ class Softmax(Layers):
 
     def write_to_layer_c_files(self, data_type, version, layers_source_file, layers_header_file):
         
-        if version == 'v1':
+        if version == 'v1' or version == 'v4':
 
             layers_source_file.write('int Softmax(int layer_idx, ' + data_type + ' *input, '+ data_type + ' *output) \n{ \n')
             layers_source_file.write('    '+ data_type + ' sum = 0;\n\n')
@@ -909,7 +928,7 @@ class Softmax(Layers):
 
     def write_to_function_header_file(self, version, header_file):
         
-        if version == 'v1':
+        if version == 'v1' or version == 'v4':
             
             header_file.write('#define l'+str(self.idx)+'_size ' + str(self.size) + '\n\n')
 
@@ -917,7 +936,7 @@ class Softmax(Layers):
 
     def write_to_globalvars_file(self, version, data_type, globalvars_file):
 
-        if version == 'v1':
+        if version == 'v1' or version == 'v4':
   
             globalvars_file.write('    ['+str(self.idx)+'] = {\n')
             globalvars_file.write('        .layer_type = Softmax,\n')
@@ -954,7 +973,7 @@ class Softmax(Layers):
         
         self.version = version
 
-        if self.version == 'v1':
+        if self.version == 'v1' or version == 'v4':
             
         
             values_1st_loop = ['for loop', 'i', ('l'+str(self.idx)+'_size'), 0, (self.size - 1)]

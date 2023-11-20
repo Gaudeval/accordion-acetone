@@ -706,3 +706,29 @@ class CodeGenerator_V4(CodeGenerator_V1):
     def __init__(self, **kwds):
         super().__init__(**kwds)
         self.version = 'v4'
+
+    def generate_layers_c_files(self):
+        self.layers_source_file.write('#include <cuda.h> \n#include <cuda_runtime.h> \n')
+        super().generate_layers_c_files()
+
+    def generate_makefile(self):
+        header_files = []
+        source_files = []
+        for filename in self.files_to_gen:
+            if '.c' in filename:
+                source_files.append(filename)
+            elif '.h' in filename:
+                header_files.append(filename)
+            else:
+                pass
+
+        self.makefile.write(f'CC = nvcc\n')
+        self.makefile.write(f'CFLAGS = -g -w -lm\n\n')
+        self.makefile.write(f'SRC = {" ".join(source_files)} \n')
+        self.makefile.write(f'HEADERS = {" ".join(header_files)} \n')
+        self.makefile.write(f'OBJ = $(SRC:.cc=.o)\n')
+        self.makefile.write(f'EXEC = {self.function_name}\n\n')
+        self.makefile.write(f'all: $(EXEC)\n\n')
+        self.makefile.write(f'$(EXEC): $(OBJ) $(HEADERS)\n')
+        self.makefile.write(f'	$(CC) $(LDFLAGS)  -o $@ $(OBJ) $(LBLIBS) $(CFLAGS)\n\n')
+        self.makefile.write(f'clean:\n	rm $(EXEC)')
