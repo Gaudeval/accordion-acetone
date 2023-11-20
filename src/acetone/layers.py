@@ -427,6 +427,26 @@ class Conv2D(Layers):
             layers_source_file.write('            }\n        }\n    }\n\n    return 0;\n}\n\n')
 
             layers_header_file.write('int Conv2D(int layer_idx, ' + data_type + ' *input, '+ data_type + ' *output);\n')
+        elif version == 'v4':
+            layers_source_file.write( 'int Conv2D(int layer_idx, ' + data_type + ' *input, ' + data_type + ' *output) \n{ \n')
+            layers_source_file.write('    ' + data_type + ' sum;\n\n')
+            layers_source_file.write('    for (int f = 0; f < net[layer_idx].nb_filters; ++f)\n    {\n')
+            layers_source_file.write('        for (int i = 0; i < net[layer_idx].output_height; ++i)\n        {\n')
+            layers_source_file.write('            for (int j = 0; j < net[layer_idx].output_width; ++j)\n            {\n')
+            layers_source_file.write('                sum = 0;\n')
+            layers_source_file.write('                for (int c = 0; c < net[layer_idx].input_channels; ++c)\n                {\n')
+            layers_source_file.write('                    for (int m = 0; m < net[layer_idx].kernel_size; ++m)\n                    {\n')
+            layers_source_file.write('                        for (int n = 0; n < net[layer_idx].kernel_size; ++n)\n                        {\n')
+            layers_source_file.write('                            int ii = i*net[layer_idx].strides + m*net[layer_idx].dilation_rate - net[layer_idx].pad_left;\n')
+            layers_source_file.write('                            int jj = j*net[layer_idx].strides + n*net[layer_idx].dilation_rate - net[layer_idx].pad_top;\n\n')
+            layers_source_file.write('                            if (ii >= 0 && ii < net[layer_idx].input_height && jj >= 0 && jj < net[layer_idx].input_width)\n                            {\n')
+            layers_source_file.write('                                sum += input[(ii*net[layer_idx].input_width + jj)*net[layer_idx].input_channels + c] * net[layer_idx].weights[((m*net[layer_idx].kernel_size + n)*net[layer_idx].input_channels + c)*net[layer_idx].nb_filters + f];\n')
+            layers_source_file.write('                            }\n                        }\n                    }\n                }\n')
+            layers_source_file.write('                sum += net[layer_idx].biases[f];\n')
+            layers_source_file.write('                output[(i*net[layer_idx].output_width + j)*net[layer_idx].nb_filters + f] = net[layer_idx].actv_function(sum);\n')
+            layers_source_file.write('            }\n        }\n    }\n\n    return 0;\n}\n\n')
+
+            layers_header_file.write('int Conv2D(int layer_idx, ' + data_type + ' *input, ' + data_type + ' *output);\n')
 
     def write_to_function_source_file(self, data_type, version, source_file):
          
@@ -487,7 +507,7 @@ class Conv2D(Layers):
 
     def write_to_function_header_file(self, version, header_file):
     
-        if version == 'v1':
+        if version == 'v1' or version == 'v4':
             
             header_file.write('#define l'+str(self.idx)+'_size ' + str(self.size) + '\n')
             header_file.write('#define l'+str(self.idx)+'_pad_right ' + str(self.pad_right) + '\n')
@@ -509,7 +529,7 @@ class Conv2D(Layers):
 
     def write_to_globalvars_file(self, version, data_type, globalvars_file):
         
-        if version == 'v1':
+        if version == 'v1' or version == 'v4':
             globalvars_file.write('    ['+str(self.idx)+'] = {\n' )
             globalvars_file.write('        .layer_type = Conv2D,\n')
             globalvars_file.write('        .layer_size = l'+str(self.idx)+'_size,\n'   )

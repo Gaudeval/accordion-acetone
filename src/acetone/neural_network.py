@@ -515,6 +515,7 @@ class CodeGenerator_V1(CodeGenerator):
 
         json.dump(flowfacts_guide, flowfacts_guide_file, sort_keys=False, indent=4, separators=(',', ': '))
 
+
 class CodeGenerator_V2(CodeGenerator):
     def __init__(self, **kwds):
         super().__init__(**kwds)
@@ -699,3 +700,9 @@ class CodeGenerator_V3(CodeGenerator_V2):
 
         self.header_file.write('int inference('+ self.data_type +' *prediction, '+ self.data_type +' *nn_input);\n\n')
         self.header_file.write('#endif')
+
+
+class CodeGenerator_V4(CodeGenerator_V1):
+    def __init__(self, **kwds):
+        super().__init__(**kwds)
+        self.version = 'v4'
