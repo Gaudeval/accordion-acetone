@@ -17,9 +17,13 @@
  * if not, write to the Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
  ******************************************************************************
 """
+from __future__ import annotations
 
 import numpy as np
 from abc import ABC, abstractmethod
+from exo import proc
+from exo.syntax import size, f32, par
+
 
 class Layers(ABC):
     
@@ -371,7 +375,37 @@ class Dense(Layers):
             self.list_of_dicts = [loop_layer_size, loop_previous_layer_size]
 
             return Layers.generate_flowfacts_dict(self)
-      
+
+
+def define_conv2D(strides: int, dilation: int, pad_left:int, pad_top: int):
+    pass
+    @proc
+    def conv(
+            F: size,
+            OH: size,
+            OW: size,
+            C: size,
+            KH: size,
+            KW: size,
+            IH: size,
+            IW: size,
+            input: f32[IH, IW, C],
+            output: f32[OH, OW, F],
+            weights: f32[KH, KW, C, F],
+    ):
+        for f in seq(0, F):
+            for i in seq(0, OH):
+                for j in seq(0, OW):
+                    output[i, j, f] = 0.0
+                    for c in seq(0, C):
+                        for m in seq(0, KH):
+                            for n in seq(0, KW):
+                                if 0 <= i * strides + m * dilation - pad_left < IH and 0 <= j * strides + n * dilation - pad_top < IW:
+                                    output[i, j, f] += input[i * strides + m * dilation - pad_left, j * strides + n * dilation - pad_top, c] * weights[m, n, c, f]
+    return conv
+
+
+
 class Conv2D(Layers):
     
     def __init__(self, idx, size, padding, strides, kernel_size, dilation_rate, nb_filters, input_shape, output_shape, weights, biases, activation_function):
@@ -406,7 +440,7 @@ class Conv2D(Layers):
 
     def write_to_layer_c_files(self, data_type, version, layers_source_file, layers_header_file):
 
-        if version == 'v1' or version == 'v4':
+        if version == 'v1':
             
             layers_source_file.write('int Conv2D(int layer_idx, ' + data_type + ' *input, '+ data_type + ' *output) \n{ \n')
             layers_source_file.write('    '+ data_type + ' sum;\n\n')
@@ -428,6 +462,22 @@ class Conv2D(Layers):
 
             layers_header_file.write('int Conv2D(int layer_idx, ' + data_type + ' *input, '+ data_type + ' *output);\n')
         elif version == 'v4':
+            conv = define_conv2D(self.strides, self.dilation_rate, self.pad_left, self.pad_top)
+            # conv = conv.partial_eval(
+            #     F=self.nb_filters,
+            #     OH=self.output_height,
+            #     OW=self.output_width,
+            #     C=self.input_channels,
+            #     KH=self.kernel_size,
+            #     KW=self.kernel_size,
+            #     IH=self.input_height,
+            #     IW=self.input_width,
+            # )
+            conv = conv.reorder("c", "m")
+            conv = conv.reorder("c", "n")
+            conv = conv.reorder("f", "i")
+            conv = conv.reorder("f", "j")
+            print(conv.c_code_str())
             layers_source_file.write(f"""
             int Conv2D(int layer_idx, {data_type}  *input, {data_type} *output) 
             {{
