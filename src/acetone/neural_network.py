@@ -271,7 +271,7 @@ class CodeGenerator(ABC):
         self.main_file.write('        inference(predictions[i], nn_test_inputs[i]);\n    }\n')
         self.main_file.write('    clock_t t1 = clock();\n\n')
         self.main_file.write('    printf("   Average time over %d tests: %e s \\n", nb_samples,\n')
-        self.main_file.write('        (float)(t1-t0)/(float)CLOCKS_PER_SEC/(float)100);\n\n')
+        self.main_file.write('        (float)(t1-t0)/nb_samples/(float)CLOCKS_PER_SEC/(float)100);\n\n')
         self.main_file.write('    printf("   ACETONE framework\'s inference output: \\n");\n')
         self.main_file.write('    for (int i = 0; i < nb_samples; ++i){\n')
         self.main_file.write('        for (int j = 0; j < nn_output_size; ++j){\n')
