@@ -226,7 +226,7 @@ class CodeGenerator(ABC):
         return s
 
     @abstractmethod
-    def generate_c_files(self):
+    def generate_c_files(self, force=False):
         pass
 
     def generate_testdataset_files(self):
@@ -311,7 +311,7 @@ class CodeGenerator_V1(CodeGenerator):
         self.version = 'v1'
         self.files_to_gen = ['layers.c', 'layers.h', 'activation_functions.c', 'activation_functions.h', 'inference.c', 'inference.h', 'global_vars.c', 'main.c', 'Makefile']
 
-    def generate_c_files(self, c_files_directory):  
+    def generate_c_files(self, c_files_directory, force=False):
 
         self.c_files_directory = c_files_directory
 
@@ -322,13 +322,15 @@ class CodeGenerator_V1(CodeGenerator):
         for file in self.files_to_gen:
             filename = Path(os.path.join(self.c_files_directory, file))
 
-            if filename.is_file():
+            if not force and filename.is_file():
                 print("ERROR : " + file + " already exists !")
                 q += 1
-            
-        if q != 0 : exit()
-        
-        else:                               
+            elif force:
+                filename.unlink(missing_ok=True)
+
+        if not force and q != 0:
+            exit()
+        else:
             self.layers_source_file = open(self.c_files_directory + '/layers.c' , "a+")
             self.layers_header_file = open(self.c_files_directory + '/layers.h' , "a+")
             self.actvfunctions_source_file = open(self.c_files_directory + '/activation_functions.c' , "a+")
@@ -522,7 +524,7 @@ class CodeGenerator_V2(CodeGenerator):
         self.version = 'v2'
         self.files_to_gen = ['inference.c', 'inference.h', 'global_vars.c', 'main.c', 'Makefile']
     
-    def generate_c_files(self, c_files_directory):  
+    def generate_c_files(self, c_files_directory, force=False):
 
         self.c_files_directory = c_files_directory
 
@@ -533,12 +535,14 @@ class CodeGenerator_V2(CodeGenerator):
         for file in self.files_to_gen:
             filename = Path(os.path.join(self.c_files_directory, file))
 
-            if filename.is_file():
+            if not force and filename.is_file():
                 print("ERROR : " + file + " already exists !")
                 q += 1
-            
-        if q != 0 : exit()
-        
+            elif force:
+                filename.unlink(missing_ok=True)
+
+        if not force and q != 0:
+            exit()
         else:                               
             self.source_file = open(self.c_files_directory + '/inference.c' , "a+")
             self.header_file = open(self.c_files_directory + '/inference.h' , "a+")
@@ -627,7 +631,7 @@ class CodeGenerator_V3(CodeGenerator_V2):
         self.version = 'v3'
         self.files_to_gen = ['inference.h', 'main.c', 'Makefile', 'test_dataset.h', 'test_dataset.c']
 
-    def generate_c_files(self, c_files_directory):  
+    def generate_c_files(self, c_files_directory, force=False):
 
         self.c_files_directory = c_files_directory
 
@@ -637,13 +641,15 @@ class CodeGenerator_V3(CodeGenerator_V2):
         for file in self.files_to_gen:
             filename = Path(os.path.join(self.c_files_directory, file))
 
-            if filename.is_file():
+            if not force and filename.is_file():
                 print("ERROR : " + file + " already exists !")
                 q += 1
-            
-        if q != 0 : exit()
-        
-        else:                               
+            elif force:
+                filename.unlink(missing_ok=True)
+
+        if not force and q != 0:
+            exit()
+        else:
             self.header_file = open(self.c_files_directory + '/inference.h' , "a+")
             self.main_file = open(self.c_files_directory + '/main.c' , "a+")
             self.makefile = open(self.c_files_directory + '/Makefile' , "a+")
