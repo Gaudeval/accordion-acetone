@@ -392,6 +392,7 @@ def define_conv2D(strides: int, dilation: int, pad_left:int, pad_top: int):
             input: f32[IH, IW, C],
             output: f32[OH, OW, F],
             weights: f32[KH, KW, C, F],
+            biases: f32[F],
     ):
         for f in seq(0, F):
             for i in seq(0, OH):
@@ -402,6 +403,8 @@ def define_conv2D(strides: int, dilation: int, pad_left:int, pad_top: int):
                             for n in seq(0, KW):
                                 if 0 <= i * strides + m * dilation - pad_left < IH and 0 <= j * strides + n * dilation - pad_top < IW:
                                     output[i, j, f] += input[i * strides + m * dilation - pad_left, j * strides + n * dilation - pad_top, c] * weights[m, n, c, f]
+                    output[i, j, f] += biases[f]
+                    # output[i, j, f] = net[layer_idx].actv_function(sum);
     return conv
 
 
@@ -463,57 +466,48 @@ class Conv2D(Layers):
             layers_header_file.write('int Conv2D(int layer_idx, ' + data_type + ' *input, '+ data_type + ' *output);\n')
         elif version == 'v4':
             conv = define_conv2D(self.strides, self.dilation_rate, self.pad_left, self.pad_top)
-            # conv = conv.partial_eval(
-            #     F=self.nb_filters,
-            #     OH=self.output_height,
-            #     OW=self.output_width,
-            #     C=self.input_channels,
-            #     KH=self.kernel_size,
-            #     KW=self.kernel_size,
-            #     IH=self.input_height,
-            #     IW=self.input_width,
-            # )
-            conv = conv.reorder("c", "m")
-            conv = conv.reorder("c", "n")
-            conv = conv.reorder("f", "i")
-            conv = conv.reorder("f", "j")
-            print(conv.c_code_str())
+            # Can derive a specific version using conv = conv.partial_eval(...)
+            # conv = conv.reorder("c", "m")
+            # conv = conv.reorder("c", "n")
+            # conv = conv.reorder("f", "i")
+            # conv = conv.reorder("f", "j")
+            conv = conv.rename(f"exo_conv{self.idx}")
+            # This should be used, be the layers needs to know the ouput directory: conv.compile_c(None, conv.name())
+            layers_source_file.write(conv.c_code_str())
             layers_source_file.write(f"""
             int Conv2D(int layer_idx, {data_type}  *input, {data_type} *output) 
             {{
-                {data_type} sum;
-           
+                {conv.name()}(
+                    NULL, // ctxt c_code_str_Context*
+                    net[layer_idx].nb_filters, // F int_fast_32_t
+                    net[layer_idx].output_height, // OH int_fast_32_t
+                    net[layer_idx].output_width, // OW int_fast_32_t
+                    net[layer_idx].input_channels, // C int_fast_32_t
+                    net[layer_idx].kernel_size, // KH int_fast_32_t
+                    net[layer_idx].kernel_size, // KW int_fast_32_t
+                    net[layer_idx].input_height, // IH int_fast_32_t
+                    net[layer_idx].input_width, // IW int_fast_32_t
+                    input, // input float*
+                    output, // output float*
+                    net[layer_idx].weights, // weights float*
+                    net[layer_idx].biases // biases float*
+                );
+                
                 for (int f = 0; f < net[layer_idx].nb_filters; ++f)
                 {{
                     for (int i = 0; i < net[layer_idx].output_height; ++i)
                     {{
                         for (int j = 0; j < net[layer_idx].output_width; ++j)
                         {{
-                            sum = 0;
-                            for (int c = 0; c < net[layer_idx].input_channels; ++c)
-                            {{
-                                for (int m = 0; m < net[layer_idx].kernel_size; ++m)
-                                {{
-                                    for (int n = 0; n < net[layer_idx].kernel_size; ++n)
-                                    {{
-                                        int ii = i*net[layer_idx].strides + m*net[layer_idx].dilation_rate - net[layer_idx].pad_left;
-                                        int jj = j*net[layer_idx].strides + n*net[layer_idx].dilation_rate - net[layer_idx].pad_top;
-                                       
-                                        if (ii >= 0 && ii < net[layer_idx].input_height && jj >= 0 && jj < net[layer_idx].input_width)
-                                        {{
-                                            sum += input[(ii*net[layer_idx].input_width + jj)*net[layer_idx].input_channels + c] * net[layer_idx].weights[((m*net[layer_idx].kernel_size + n)*net[layer_idx].input_channels + c)*net[layer_idx].nb_filters + f];
-                                        }}
-                                    }}
-                                }}
-                            }}
-                            sum += net[layer_idx].biases[f];
-                            output[(i*net[layer_idx].output_width + j)*net[layer_idx].nb_filters + f] = net[layer_idx].actv_function(sum);
+                            output[(i*net[layer_idx].output_width + j)*net[layer_idx].nb_filters + f] = net[layer_idx].actv_function(output[(i*net[layer_idx].output_width + j)*net[layer_idx].nb_filters + f]);
                         }}
                     }}
                 }}
                 
                 return 0;
-            }}""")
+            }}
+            
+            """)
 
             layers_header_file.write('int Conv2D(int layer_idx, ' + data_type + ' *input, ' + data_type + ' *output);\n')
 
