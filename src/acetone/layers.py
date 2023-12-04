@@ -19,6 +19,10 @@
 """
 from __future__ import annotations
 
+import math
+import operator
+from functools import reduce
+
 import numpy as np
 from abc import ABC, abstractmethod
 from exo import proc
@@ -377,6 +381,158 @@ class Dense(Layers):
             return Layers.generate_flowfacts_dict(self)
 
 
+def volume_of(shape: tuple[int, ...]) -> int:
+    """Returns the number of elements in an array."""
+    if any(s <= 0 for s in shape):
+        raise ValueError(f"Invalid array shape {shape}.")
+    return reduce(operator.mul, shape, 1)
+
+
+# TODO Implement an ordering/representation parameter, e.g. C/Fortran/(A, B, C...) tuple
+def index_of(indices: tuple[int, ...], shape: tuple[int, ...]) -> int:
+    """Returns the index of an element in the flattened array."""
+    # Check indices are in array bounds
+    if len(shape) != len(indices) or any(s <= i for s, i in zip(shape, indices)):
+        raise ValueError(f"Invalid indices {indices} for array of shape {shape}.")
+    # Compute index (assuming a C-like, row-major layout)
+    # index = ((indices[0] * shape[1] * ... * shape[n]) + indices[1] * shape[2] * ... * shape[n] + ... + indices[n]
+    # index = ((indices[0] * shape[1]) + indices[1]) * shape[2] ...) * shape[n] + indices[n]
+    shape_major, index = list(shape), 0
+    for s, i in zip(indices, shape_major[1:] + [1]):
+        index = index * s + i
+    return -1
+
+
+def indices_of(index: int, shape: tuple[int, ...]) -> tuple[int, ...]:
+    """Returns the indices of an element in the N-D array."""
+    # Check index is in array bounds
+    if all(s > 0 for s in shape) and index >= volume_of(shape):
+        raise ValueError(f"Invalid index {index} for array of shape {shape} ({volume_of(shape)} elements).")
+    # Compute the indices of element index (assuming a C-like, row-major layout)
+    # dim[i] = floor((index % (shape[i] * ... * shape[0])) / (shape[i-1] * ... * shape[0]))
+    # - Remove dimensions [shape[0]]...[shape[i-1]], account only for shape[i] * ... * shape[N] elements
+    # - Remove dimensions [shape[i+1]]...[shape[N]], each step in i steps over shape[i+1] * ... * shape[N] elements
+    indices: list[int] = [0 for _ in shape]
+    rem: int = volume_of(shape)
+    for i in range(len(shape)):
+        indices[i] = index % rem
+        rem = rem // shape[i]
+        indices[i] = indices[i] // rem
+    return tuple(indices)
+
+
+def reindex_of(indices:tuple[int, ...], shape_src: tuple[int, ...], shape_dst: tuple[int, ...]) -> tuple[int, ...]:
+    # Check shape volumes are compatible
+    if volume_of(shape_src) > volume_of(shape_dst):
+        raise ValueError(f"Cannot index element from shape {shape_src} ({volume_of(shape_src)} elements) "
+                         f"into shape {shape_dst} ({volume_of(shape_dst)} elements)")
+    # Check indices are valid
+    if any(s <= i for s, i in zip(shape_src, indices)):
+        raise ValueError(f"Invalid indices {indices} for array of shape {shape_src}.")
+    return indices_of(index_of(indices, shape_src), shape_dst)
+
+
+def mma(
+        M: int,
+        N: int,
+        K: int,
+        A: np.array,
+        B: np.array,
+        C: np.array,
+) -> np.array:
+    assert A.shape == (M, K)
+    assert B.shape == (K, N)
+    assert C.shape == (M, N)
+    D: np.array = np.zeros((M, N))
+    for m in range(M):
+        for n in range(N):
+            D[m, n] = 0.0
+            for k in range(K):
+                D[m, n] += A[m, k] * B[k, n]
+            D[m, n] += C[m, n]
+    return D
+
+
+def input_index_of(
+        output_index: int,
+        filter_index: int,
+        stride: int,
+        dilation: int,
+        pad: int
+) -> int:
+    return output_index * stride + filter_index * dilation - pad
+
+
+def conv2d_implicit(
+        F: int,
+        C: int,
+        OH: int,
+        OW: int,
+        KH: int,
+        KW: int,
+        IH: int,
+        IW: int,
+        input,  # : f32[IH, IW, C],
+        output,  # : f32[OH, OW, F],
+        weights,  # : f32[KH, KW, C, F],
+        biases,  # : f32[F],
+        strides,  # : int,
+        dilation,  # : int,
+        pad_left,  # : int,
+        pad_top,  # : int):
+        M: int = 8,
+        N: int = 8,
+        K: int = 4,
+):
+    assert all(s >= d for s, d in zip(output.shape, (OH, OW, F)))
+    assert all(s >= d for s, d in zip(weights.shape, (KH, KW, C, F)))
+    assert all(s >= d for s, d in zip(input.shape, (IH, IW, C)))
+    assert biases.shape == (F,)
+    # Initialise output with biases
+    for o in range(volume_of((OH, OW, F))):
+        oh, ow, f = indices_of(o, (OH, OW, F))
+        output[oh, ow, f] = biases[f]
+    # Compute output
+    for f in range(0, F, M):
+        for o in range(0, volume_of((OH, OW)), N):
+            # Compute output[o:o+n,f] using M*K fragments at a time
+            for k in range(0, volume_of((KH, KW, C)), K):
+                A = np.zeros((M, K))
+                B = np.zeros((K, N))
+                # _ = np.zeros((M, N))
+                # Copy weights[k:k+K, f:f+M] into A[0:M, 0:K]
+                for a in range(volume_of((M, K))):
+                    ah, aw = indices_of(a, (M, K))
+                    # A[f:f+M,:] identifies a filter
+                    # A[:, k:k+K] identifies the contents of a filter
+                    if f + ah < F and k + aw < volume_of((KH, KW, C)):
+                        kh, kw, c = indices_of(k + aw, (KH, KW, C))
+                        A[ah, aw] = weights[kh, kw, c, f + ah]
+                    else:
+                        A[ah, aw] = 0.0
+                # Copy matching input into B
+                for b in range(volume_of((K, N))):
+                    bh, bw = indices_of(b, (K, N))
+                    if o + bw < volume_of((OH, OW)) and k + bh < volume_of((KH, KW, C)):
+                        oh, ow = indices_of(o + bw, (OH, OW))
+                        kh, kw, c = indices_of(k + bh, (KH, KW, C))
+                        ih = input_index_of(oh, kh, strides, dilation, pad_left)
+                        iw = input_index_of(ow, kw, strides, dilation, pad_top)
+                        B[bh, bw] = input[ih, iw, c]
+                    else:
+                        B[bh, bw] = 0.0
+                #
+                D = mma(M, N, K, A, B, np.zeros((M, N)))
+                # Copy result into output
+                for m in range(M):
+                    for n in range(N):
+                        # Each line is a filter
+                        # Each column is an output element
+                        if f + m < F and o + n < volume_of((OH, OW)):
+                            oh, ow = indices_of(o + n, (OH, OW))
+                            output[oh, ow, f + m] += D[m, n]
+
+
 def define_conv2D(strides: int, dilation: int, pad_left:int, pad_top: int):
     pass
     @proc
@@ -615,21 +771,60 @@ class Conv2D(Layers):
             globalvars_file.write('        .actv_function =  '+ (self.activation_function).name +',\n        },\n')
     
     def feedforward(self, input):
-        
+
         input = input.reshape(self.input_height, self.input_width, self.input_channels)
         output = np.zeros((self.output_height, self.output_width, self.nb_filters))
-        
+
         if self.pad_right and self.pad_left and self.pad_top and self.pad_bottom:
             input_padded = np.zeros((self.input_height + self.pad_top + self.pad_bottom, self.input_width + self.pad_left + self.pad_right, self.input_channels))
             input_padded[self.pad_top:-self.pad_bottom, self.pad_left:-self.pad_right, :] = input
         else:
             input_padded = input
 
+        implicit_input = np.copy(input)
+        implicit_output = np.copy(output)
+        conv2d_implicit(
+            self.nb_filters,
+            self.input_channels,
+            self.output_height,
+            self.output_width,
+            self.kernel_size,
+            self.kernel_size,
+            self.input_height,
+            self.input_width,
+            implicit_input,
+            implicit_output,
+            self.weights,
+            self.biases,
+            self.strides,
+            self.dilation_rate,
+            self.pad_left,
+            self.pad_top,
+        )
+
+        # x = define_conv2D(self.strides, self.dilation_rate, self.pad_left, self.pad_top)
+        # x.interpret(
+        #     F=self.nb_filters,
+        #     C=self.input_channels,
+        #     OH=self.output_height,
+        #     OW=self.output_width,
+        #     KH=self.kernel_size,
+        #     KW=self.kernel_size,
+        #     IH=self.input_height,
+        #     IW=self.output_width,
+        #     input=implicit_input,
+        #     output=implicit_output,
+        #     weights=self.weights,
+        #     biases=self.biases,
+        # )
+
         for f in range(self.nb_filters):
             for j in range(self.output_width): 
                 for i in range(self.output_height):
                     output[i,j,f]=np.sum(input_padded[i*self.strides:i*self.strides+self.kernel_size, j*self.strides:j*self.strides+self.kernel_size, :] * self.weights[:,:,:,f]) + self.biases[f]
-        
+                    assert math.isclose(output[i, j, f], implicit_output[i, j, f], rel_tol=0.01), \
+                        f"[{i}, {j}, {f}](shape: {output.shape}):  {output[i, j, f]} == {implicit_output[i, j, f]}"
+
         return self.activation_function.compute(output)
 
     def generate_flowfacts_dict(self, version):
