@@ -1008,7 +1008,7 @@ class Softmax(Layers):
 
     def feedforward(self, input):
         
-        exp = np.exp(input, dtype=np.float)
+        exp = np.exp(input, dtype=float)
         output = exp/np.sum(exp)
 
         return output
