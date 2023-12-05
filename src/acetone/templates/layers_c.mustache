@@ -1,0 +1,206 @@
+#include <cuda.h> 
+#include <cuda_runtime.h> 
+#include <stdio.h> 
+#include <math.h> 
+#include "layers.h" 
+#include "inference.h"
+
+int Input_layer(int layer_idx, float *input, float *output) 
+{ 
+    for (int i = 0; i < net[layer_idx].layer_size; ++i) 
+    { 
+        output[i] = input[i]; 
+    } 
+
+    return 0; 
+} 
+
+
+#include <stdint.h>
+#include <stdbool.h>
+
+// Compiler feature macros adapted from Hedley (public domain)
+// https://github.com/nemequ/hedley
+
+#if defined(__has_builtin)
+#  define EXO_HAS_BUILTIN(builtin) __has_builtin(builtin)
+#else
+#  define EXO_HAS_BUILTIN(builtin) (0)
+#endif
+
+#if EXO_HAS_BUILTIN(__builtin_assume)
+#  define EXO_ASSUME(expr) __builtin_assume(expr)
+#elif EXO_HAS_BUILTIN(__builtin_unreachable)
+#  define EXO_ASSUME(expr) \
+      ((void)((expr) ? 1 : (__builtin_unreachable(), 1)))
+#else
+#  define EXO_ASSUME(expr) ((void)(expr))
+#endif
+
+typedef struct c_code_str_Context { 
+
+} c_code_str_Context;
+
+
+// exo_conv1(
+//     F : size,
+//     OH : size,
+//     OW : size,
+//     C : size,
+//     KH : size,
+//     KW : size,
+//     IH : size,
+//     IW : size,
+//     input : f32[IH,IW,C]  @DRAM,
+//     output : f32[OH,OW,F]  @DRAM,
+//     weights : f32[KH,KW,C,F]  @DRAM,
+//     biases : f32[F]  @DRAM
+// )
+void exo_conv1( c_code_str_Context *ctxt, int_fast32_t F, int_fast32_t OH, int_fast32_t OW, int_fast32_t C, int_fast32_t KH, int_fast32_t KW, int_fast32_t IH, int_fast32_t IW, float* input, float* output, float* weights, float* biases );
+
+
+static int _floor_div(int num, int quot) {
+  int off = (num>=0)? 0 : quot-1;
+  return (num-off)/quot;
+}
+
+static int8_t _clamp_32to8(int32_t x) {
+  return (x < -128)? -128 : ((x > 127)? 127 : x);
+}
+
+#include <stdio.h>
+#include <stdlib.h>
+
+
+// exo_conv1(
+//     F : size,
+//     OH : size,
+//     OW : size,
+//     C : size,
+//     KH : size,
+//     KW : size,
+//     IH : size,
+//     IW : size,
+//     input : f32[IH,IW,C]  @DRAM,
+//     output : f32[OH,OW,F]  @DRAM,
+//     weights : f32[KH,KW,C,F]  @DRAM,
+//     biases : f32[F]  @DRAM
+// )
+void exo_conv1( c_code_str_Context *ctxt, int_fast32_t F, int_fast32_t OH, int_fast32_t OW, int_fast32_t C, int_fast32_t KH, int_fast32_t KW, int_fast32_t IH, int_fast32_t IW, float* input, float* output, float* weights, float* biases ) {
+for (int i = 0; i < OH; i++) {
+  for (int j = 0; j < OW; j++) {
+    for (int f = 0; f < F; f++) {
+      output[(i) * (OW * F) + (j) * (F) + (f) * (1)] = 0.0;
+      for (int m = 0; m < KH; m++) {
+        for (int n = 0; n < KW; n++) {
+          for (int c = 0; c < C; c++) {
+            if (0 <= i * 1 + m * 1 - 0 && i * 1 + m * 1 - 0 < IH && (0 <= j * 1 + n * 1 - 0 && j * 1 + n * 1 - 0 < IW)) {
+              output[(i) * (OW * F) + (j) * (F) + (f) * (1)] += input[(i * 1 + m * 1 - 0) * (IW * C) + (j * 1 + n * 1 - 0) * (C) + (c) * (1)] * weights[(m) * (KW * C * F) + (n) * (C * F) + (c) * (F) + (f) * (1)];
+            }
+          }
+        }
+      }
+      output[(i) * (OW * F) + (j) * (F) + (f) * (1)] += biases[(f) * (1)];
+    }
+  }
+}
+}
+
+            int Conv2D(int layer_idx, float  *input, float *output) 
+            {
+                exo_conv1(
+                    NULL, // ctxt c_code_str_Context*
+                    net[layer_idx].nb_filters, // F int_fast_32_t
+                    net[layer_idx].output_height, // OH int_fast_32_t
+                    net[layer_idx].output_width, // OW int_fast_32_t
+                    net[layer_idx].input_channels, // C int_fast_32_t
+                    net[layer_idx].kernel_size, // KH int_fast_32_t
+                    net[layer_idx].kernel_size, // KW int_fast_32_t
+                    net[layer_idx].input_height, // IH int_fast_32_t
+                    net[layer_idx].input_width, // IW int_fast_32_t
+                    input, // input float*
+                    output, // output float*
+                    net[layer_idx].weights, // weights float*
+                    net[layer_idx].biases // biases float*
+                );
+                
+                for (int f = 0; f < net[layer_idx].nb_filters; ++f)
+                {
+                    for (int i = 0; i < net[layer_idx].output_height; ++i)
+                    {
+                        for (int j = 0; j < net[layer_idx].output_width; ++j)
+                        {
+                            output[(i*net[layer_idx].output_width + j)*net[layer_idx].nb_filters + f] = net[layer_idx].actv_function(output[(i*net[layer_idx].output_width + j)*net[layer_idx].nb_filters + f]);
+                        }
+                    }
+                }
+                
+                return 0;
+            }
+            
+            int AveragePooling2D(int layer_idx, float *input, float *output) 
+{ 
+    float sum;
+    int count;
+
+    for (int c = 0; c < net[layer_idx].input_channels; ++c)
+    {
+        for (int i = 0; i < net[layer_idx].output_height; ++i)
+        {
+            for (int j = 0; j < net[layer_idx].output_width; ++j)
+            {
+                    sum = 0; count = 0;
+                for (int m = 0; m < net[layer_idx].pool_size; ++m)
+                {
+                    for (int n = 0; n < net[layer_idx].pool_size; ++n)
+                    {
+                        int ii = i*net[layer_idx].strides + m - net[layer_idx].pad_left;
+                        int jj = j*net[layer_idx].strides + n - net[layer_idx].pad_top;
+
+                        if (ii >= 0 && ii < net[layer_idx].input_height && jj >= 0 && jj < net[layer_idx].input_width)
+                        {
+                                        sum += input[(ii*net[layer_idx].input_width + jj)*net[layer_idx].input_channels + c];
+                            count ++;
+                        }
+                    }
+                }
+                output[(i*net[layer_idx].output_width + j)*net[layer_idx].input_channels + c] = sum/count;
+
+            }
+        }
+    }
+
+    return 0;
+}
+
+int Dense(int layer_idx, float *input, float *output) 
+{ 
+    float dotproduct;
+
+    for (int i = 0; i < net[layer_idx].layer_size; ++i) 
+    { 
+        dotproduct = 0;
+        for (int j = 0; j < net[layer_idx-1].layer_size; ++j)
+        {
+            dotproduct += input[j] * (net[layer_idx].weights[(j*net[layer_idx].layer_size+i)]);
+        }
+        dotproduct += net[layer_idx].biases[i];
+        output[i] = net[layer_idx].actv_function(dotproduct);
+    }
+
+    return 0; 
+} 
+
+int Softmax(int layer_idx, float *input, float *output) 
+{ 
+    float sum = 0;
+
+    for (int i = 0; i < net[layer_idx].layer_size; ++i) 
+        sum += exp(input[i]);
+
+    for (int j = 0; j < net[layer_idx].layer_size; ++j)
+        output[j] = exp(input[j])/sum;
+
+    return 0; 
+} 
+

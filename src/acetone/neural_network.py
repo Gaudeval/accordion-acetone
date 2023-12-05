@@ -786,24 +786,54 @@ class TemplatedCodeGenerator(CodeGenerator):
 
         return directory / "activation_function.h", directory / "activation_function.c"
 
+    def generate_inference_files(self, renderer, directory):
+        from .templates import InferenceHeaderTemplate, InferenceSourceTemplate
+
+        with (directory / "inference.h").open("w") as inference_header:
+            header_template = InferenceHeaderTemplate()
+            inference_header.write(renderer.render(header_template))
+
+        with (directory / "inference.c").open("w") as inference_source:
+            source_template = InferenceSourceTemplate()
+            inference_source.write(renderer.render(source_template))
+
+        return directory / "inference.h", directory / "inference.c"
+
+    def generate_layers_files(self, renderer, directory):
+        from .templates import LayersHeaderTemplate, LayersSourceTemplate
+
+        with (directory / "layers.h").open("w") as layers_header:
+            header_template = LayersHeaderTemplate()
+            layers_header.write(renderer.render(header_template))
+
+        with (directory / "layers.c").open("w") as layers_source:
+            source_template = LayersSourceTemplate()
+            layers_source.write(renderer.render(source_template))
+
+        return directory / "layers.h", directory / "inference.c"
+
     def generate_c_files(self, c_files_directory, force=False):
-        from .templates import MakefileTemplate, MainTemplate
+        from .templates import MakefileTemplate, MainTemplate, GlobalsTemplate
         c_files_root = Path(c_files_directory)
         renderer = Renderer()
 
         generated_files = []
         generated_files += self.generate_dataset_files(renderer, c_files_root)
         generated_files += self.generate_activation_function_files(renderer, c_files_root)
+        generated_files += self.generate_inference_files(renderer, c_files_root)
+        generated_files += self.generate_layers_files(renderer, c_files_root)
+
+        # Generate global variables
+        with (c_files_root / "global_vars.c").open("w") as globals_file:
+            globals_template = GlobalsTemplate()
+            globals_file.write(renderer.render(globals_template))
+            generated_files.append(c_files_root / "global_vars.c")
 
         # Generate entry point
         with (c_files_root / "main.c").open("w") as main_file:
             main_template = MainTemplate(self.data_type)
             main_file.write(renderer.render(main_template))
             generated_files.append(c_files_root / "main.c")
-
-        # TODO Generate global_vars.c
-        # TODO Generate inference.{c,h}
-        # TODO Generate layers.{c,h}
 
         # Generate build Makefile
         header_files = {h.name for h in generated_files if h.suffix.lower() in self.HEADER_SUFFIXES}

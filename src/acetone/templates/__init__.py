@@ -60,3 +60,28 @@ class ActivationFunctionSourceTemplate(pystache.TemplateSpec):
 
     def __init__(self, activation_definitions: Iterable[str]):
         self.definitions = activation_definitions
+
+
+# TODO
+class InferenceSourceTemplate(pystache.TemplateSpec):
+    template_name = "inference_c"
+
+
+# TODO
+class InferenceHeaderTemplate(pystache.TemplateSpec):
+    template_name = "inference_h"
+
+
+# TODO
+class LayersSourceTemplate(pystache.TemplateSpec):
+    template_name = "layers_c"
+
+
+# TODO
+class LayersHeaderTemplate(pystache.TemplateSpec):
+    template_name = "layers_h"
+
+
+# TODO
+class GlobalsTemplate(pystache.TemplateSpec):
+    template_name = "global_vars_c"

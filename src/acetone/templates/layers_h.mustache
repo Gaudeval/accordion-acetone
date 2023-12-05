@@ -1,0 +1,10 @@
+#ifndef LAYERS_H_ 
+#define LAYERS_H_
+
+int Input_layer(int layer_idx, float *input, float *output);
+int Conv2D(int layer_idx, float *input, float *output);
+int AveragePooling2D(int layer_idx, float *input, float *output);
+int Dense(int layer_idx, float *input, float *output);
+int Softmax(int layer_idx, float *input, float *output);
+
+#endif

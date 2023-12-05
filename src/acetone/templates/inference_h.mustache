@@ -1,0 +1,100 @@
+#ifndef INFERENCE_H_
+#define INFERENCE_H_
+
+#define l0_size 784
+
+#define l1_size 3456
+#define l1_pad_right 0
+#define l1_pad_left 0
+#define l1_pad_bottom 0
+#define l1_pad_top 0
+#define l1_strides 1
+#define l1_kernel_size 5
+#define l1_dilation_rate 1
+#define l1_nb_filters 6
+#define l1_input_height 28
+#define l1_input_width 28
+#define l1_input_channels 1
+#define l1_output_height 24
+#define l1_output_width 24
+
+#define l2_size 864
+#define l2_pad_right 0
+#define l2_pad_left 0
+#define l2_pad_bottom 0
+#define l2_pad_top 0
+#define l2_strides 2
+#define l2_pool_size 2
+#define l2_input_height 24
+#define l2_input_width 24
+#define l2_input_channels 6
+#define l2_output_height 12
+#define l2_output_width 12
+
+#define l3_size 1024
+#define l3_pad_right 0
+#define l3_pad_left 0
+#define l3_pad_bottom 0
+#define l3_pad_top 0
+#define l3_strides 1
+#define l3_kernel_size 5
+#define l3_dilation_rate 1
+#define l3_nb_filters 16
+#define l3_input_height 12
+#define l3_input_width 12
+#define l3_input_channels 6
+#define l3_output_height 8
+#define l3_output_width 8
+
+#define l4_size 256
+#define l4_pad_right 0
+#define l4_pad_left 0
+#define l4_pad_bottom 0
+#define l4_pad_top 0
+#define l4_strides 2
+#define l4_pool_size 2
+#define l4_input_height 8
+#define l4_input_width 8
+#define l4_input_channels 16
+#define l4_output_height 4
+#define l4_output_width 4
+
+#define l5_size 120
+
+#define l6_size 84
+
+#define l7_size 10
+
+#define l8_size 10
+
+#define nb_layers 9
+#define nb_params_max 14
+#define l_size_max 3456
+struct layer
+{
+    int (*layer_type)(int, float*, float*);
+    int layer_size;
+    int pad_right;
+    int pad_left;
+    int pad_bottom;
+    int pad_top;
+    int strides;
+    int pool_size;
+    int kernel_size;
+    int dilation_rate;
+    int nb_filters;
+    int input_channels;
+    int input_height;
+    int input_width;
+    int output_height;
+    int output_width;
+    float *weights;
+    float *biases;
+    float (*actv_function)(float);
+};
+
+extern struct layer net[nb_layers];
+
+int inference(float *prediction, float *nn_input);
+
+#endif
