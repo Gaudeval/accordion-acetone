@@ -1,0 +1,15 @@
+CC = {{compiler}}
+CFLAGS = -g -w -lm
+
+SRC = {{#source_files}} {{.}} {{/source_files}}
+HEADERS = {{#header_files}} {{.}} {{/header_files}}
+OBJ = $(SRC:.cc=.o)
+EXEC = {{bin_name}}
+
+all: $(EXEC)
+
+$(EXEC): $(OBJ) $(HEADERS)
+	$(CC) $(LDFLAGS)  -o $@ $(OBJ) $(LBLIBS) $(CFLAGS)
+
+clean:
+	rm $(EXEC)

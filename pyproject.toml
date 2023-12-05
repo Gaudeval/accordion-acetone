@@ -36,6 +36,8 @@ classifiers = [
 # https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#dependencies-and-requirements
 # TODO Check the need to duplicate the requirements.txt contents
 # TODO Check the need for dev optional dependencies
+# TODO Add exo-lang to dependencies
+# TODO Add pystache to dependencies
 # [project]
 #dependencies = [
 #  "httpx",

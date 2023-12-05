@@ -738,3 +738,19 @@ class CodeGenerator_V4(CodeGenerator_V1):
         self.makefile.write(f'$(EXEC): $(OBJ) $(HEADERS)\n')
         self.makefile.write(f'	$(CC) $(LDFLAGS)  -o $@ $(OBJ) $(LBLIBS) $(CFLAGS)\n\n')
         self.makefile.write(f'clean:\n	rm $(EXEC)')
+
+
+class TemplatedCodeGenerator(CodeGenerator):
+    def __init__(self, **kwds):
+        super().__init__(**kwds)
+        self.version = 'v5'
+        self.files_to_gen = ['layers.c', 'layers.h', 'activation_functions.c', 'activation_functions.h', 'inference.c', 'inference.h', 'global_vars.c', 'main.c', 'Makefile']
+
+    def generate_c_files(self, c_files_directory, force=False):
+        from pystache import Renderer
+        from .templates import MakefileTemplate
+
+        renderer = Renderer()
+        makefile = MakefileTemplate(["layers.c"], ["layers.h"], "lenet5", "nvcc")
+        print(renderer.render(makefile))
+
