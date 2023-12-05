@@ -24,7 +24,7 @@ import numpy as np
 from pathlib import Path
 from itertools import islice
 from pystache import Renderer
-from .activation_functions import Linear, ReLu, Sigmoid, TanH
+from .activation_functions import Linear, ReLu, Sigmoid, TanH, ActivationFunctions
 from .layers import AveragePooling2D, MaxPooling2D, InputLayer, Dense, Conv2D, Softmax
 from abc import ABC, abstractmethod
 
@@ -762,6 +762,30 @@ class TemplatedCodeGenerator(CodeGenerator):
 
         return directory / "test_dataset.h", directory / "test_dataset.c"
 
+    def generate_activation_function_files(self, renderer, directory):
+        from .templates import ActivationFunctionHeaderTemplate, ActivationFunctionSourceTemplate
+
+        # Collect used activation functions
+        activation_functions: dict[str, ActivationFunctions] = {}
+        for i in self.layers:
+            if hasattr(i, "activation_function"):
+                f = i.activation_function
+                activation_functions[f.name] = f
+
+        with (directory / "activation_function.h").open("w") as activation_header:
+            header_template = ActivationFunctionHeaderTemplate(
+                (f.generate_c_declaration(self.data_type) for f in activation_functions.values())
+            )
+            activation_header.write(renderer.render(header_template))
+
+        with (directory / "activation_function.c").open("w") as activation_source:
+            source_template = ActivationFunctionSourceTemplate(
+                (f.generate_c_definition(self.data_type) for f in activation_functions.values())
+            )
+            activation_source.write(renderer.render(source_template))
+
+        return directory / "activation_function.h", directory / "activation_function.c"
+
     def generate_c_files(self, c_files_directory, force=False):
         from .templates import MakefileTemplate, MainTemplate
         c_files_root = Path(c_files_directory)
@@ -769,12 +793,17 @@ class TemplatedCodeGenerator(CodeGenerator):
 
         generated_files = []
         generated_files += self.generate_dataset_files(renderer, c_files_root)
+        generated_files += self.generate_activation_function_files(renderer, c_files_root)
 
         # Generate entry point
         with (c_files_root / "main.c").open("w") as main_file:
-            main_template = MainTemplate()
+            main_template = MainTemplate(self.data_type)
             main_file.write(renderer.render(main_template))
             generated_files.append(c_files_root / "main.c")
+
+        # TODO Generate global_vars.c
+        # TODO Generate inference.{c,h}
+        # TODO Generate layers.{c,h}
 
         # Generate build Makefile
         header_files = {h.name for h in generated_files if h.suffix.lower() in self.HEADER_SUFFIXES}

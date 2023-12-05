@@ -12,7 +12,7 @@ int main(int argc, char** argv)
 
     FILE *fp = fopen(path, "w+");
 
-    float predictions[NB_SAMPLES][NN_OUTPUT_SIZE];
+    {{data_type}} predictions[NB_SAMPLES][NN_OUTPUT_SIZE];
 
     clock_t t0 = clock();
     for (int i = 0; i < NB_SAMPLES; ++i){

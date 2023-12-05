@@ -44,3 +44,19 @@ class DatasetSourceTemplate(pystache.TemplateSpec):
 class MainTemplate(pystache.TemplateSpec):
     template_name = "main_c"
 
+    def __init__(self, data_type: str):
+        self.data_type = data_type
+
+
+class ActivationFunctionHeaderTemplate(pystache.TemplateSpec):
+    template_name = "activation_function_h"
+
+    def __init__(self, activation_declarations: Iterable[str]):
+        self.declarations = activation_declarations
+
+
+class ActivationFunctionSourceTemplate(pystache.TemplateSpec):
+    template_name = "activation_function_c"
+
+    def __init__(self, activation_definitions: Iterable[str]):
+        self.definitions = activation_definitions
