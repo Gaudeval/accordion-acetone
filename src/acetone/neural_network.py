@@ -25,7 +25,7 @@ from pathlib import Path
 from itertools import islice
 from pystache import Renderer
 from .activation_functions import Linear, ReLu, Sigmoid, TanH, ActivationFunctions
-from .layers import AveragePooling2D, MaxPooling2D, InputLayer, Dense, Conv2D, Softmax
+from .layers import AveragePooling2D, MaxPooling2D, InputLayer, Dense, Conv2D, Softmax, Layers
 from abc import ABC, abstractmethod
 
 class CodeGenerator(ABC):
@@ -794,13 +794,16 @@ class TemplatedCodeGenerator(CodeGenerator):
             inference_header.write(renderer.render(header_template))
 
         with (directory / "inference.c").open("w") as inference_source:
-            source_template = InferenceSourceTemplate()
+            source_template = InferenceSourceTemplate(self.data_type)
             inference_source.write(renderer.render(source_template))
 
         return directory / "inference.h", directory / "inference.c"
 
     def generate_layers_files(self, renderer, directory):
         from .templates import LayersHeaderTemplate, LayersSourceTemplate
+
+        # Collect used activation functions
+        used_layers: dict[str, Layers] = {i.name: i for i in self.layers}
 
         with (directory / "layers.h").open("w") as layers_header:
             header_template = LayersHeaderTemplate()

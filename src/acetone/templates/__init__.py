@@ -62,9 +62,11 @@ class ActivationFunctionSourceTemplate(pystache.TemplateSpec):
         self.definitions = activation_definitions
 
 
-# TODO
 class InferenceSourceTemplate(pystache.TemplateSpec):
     template_name = "inference_c"
+
+    def __init__(self, data_type: str):
+        self.data_type = data_type
 
 
 # TODO

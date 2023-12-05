@@ -5,8 +5,8 @@
 
 int inference(float prediction[net[nb_layers-1].layer_size], float nn_input[net[0].layer_size])
 {
-    static float output_pre[l_size_max];
-    static float output_cur[l_size_max];
+    static {{data_type}} output_pre[l_size_max];
+    static {{data_type}} output_cur[l_size_max];
 
     net[0].layer_type(0, nn_input, output_pre);
 
