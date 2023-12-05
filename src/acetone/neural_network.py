@@ -23,6 +23,7 @@ import json
 import numpy as np
 from pathlib import Path
 from itertools import islice
+from pystache import Renderer
 from .activation_functions import Linear, ReLu, Sigmoid, TanH
 from .layers import AveragePooling2D, MaxPooling2D, InputLayer, Dense, Conv2D, Softmax
 from abc import ABC, abstractmethod
@@ -43,9 +44,9 @@ class CodeGenerator(ABC):
 
         ds = self.load_test_dataset()
         self.test_dataset = ds
-        
+
     def load_json(self):
-        
+
         file = open(self.json_file, 'r')
         model = json.load(file)
 
@@ -85,23 +86,23 @@ class CodeGenerator(ABC):
                     add_softmax_layer = False
             else:
                 pass
-        
+
             if layer['class_name'] == 'Dense':
                 current_layer = Dense(idx, layer['config']['units'], data_type_py(layer['weights']), data_type_py(layer['biases']), self.create_actv_function_obj(layer['config']['activation']))
-            
-            elif layer['class_name'] == 'Conv2D': 
+
+            elif layer['class_name'] == 'Conv2D':
                 current_layer = Conv2D(idx, layer['config']['size'], layer['config']['padding'], layer['config']['strides'][0], layer['config']['kernel_size'][0], layer['config']['dilation_rate'][0], layer['config']['filters'], layer['config']['input_shape'], layer['config']['output_shape'], data_type_py(layer['weights']), data_type_py(layer['biases']), self.create_actv_function_obj(layer['config']['activation']))
-            
+
             elif layer['class_name'] == 'AveragePooling2D':
                 current_layer = AveragePooling2D(idx = idx, size = layer['config']['size'], padding = layer['config']['padding'], strides = layer['config']['strides'][0], pool_size = layer['config']['pool_size'][0], input_shape = layer['config']['input_shape'], output_shape = layer['config']['output_shape'])
-            
+
             elif layer['class_name'] == 'MaxPooling2D':
                 current_layer = MaxPooling2D(idx = idx, size = layer['config']['size'], padding = layer['config']['padding'], strides = layer['config']['strides'][0], pool_size = layer['config']['pool_size'][0], input_shape = layer['config']['input_shape'], output_shape = layer['config']['output_shape'])
-            
+
             elif layer['class_name'] == 'Flatten':
                 nb_flatten_layers = 1
                 continue
-            
+
             l_temp.next_layer.append(current_layer)
             current_layer.previous_layer.append(l_temp)
             l_temp = current_layer
@@ -116,11 +117,11 @@ class CodeGenerator(ABC):
                 l_temp = current_layer
                 layers.append(current_layer)
 
-        print("Finished model initialization.")    
+        print("Finished model initialization.")
         return layers, data_type, data_type_py
 
     def load_test_dataset(self):
-        
+
         test_dataset = []
         try:
             with open(self.test_dataset_file, 'r') as f:
@@ -129,7 +130,7 @@ class CodeGenerator(ABC):
                     if self.data_type == 'int':
                         line = list(map(int,line))
                     elif self.data_type == 'double':
-                        line = list(map(float,line)) 
+                        line = list(map(float,line))
                     elif self.data_type == 'float':
                         line = list(map(np.float32,line))
                     test_dataset.append(line)
@@ -137,34 +138,34 @@ class CodeGenerator(ABC):
                         break
             test_dataset = np.array(test_dataset)
             f.close()
-       
+
         except TypeError:
             None
-        
+
         return test_dataset
 
     def compute_inference(self, c_files_directory):
         with open(os.path.join(c_files_directory, 'output_python.txt'), 'w+') as fi:
             for nn_input in self.test_dataset:
-            
+
                 previous_layer_result = nn_input  # for the very first layer, it is the neural network input
-                
+
                 for layer in self.layers:
                     current_layer_result = layer.feedforward(previous_layer_result)
                     previous_layer_result = current_layer_result
-                
+
                 nn_output = current_layer_result
-        
+
                 # print(nn_output) # write to file instead
-                
+
                 # Write results in text files to compare prediction.
-                
+
                 nn_output = np.reshape(nn_output, -1)
                 for j in range(len(nn_output)):
-                    print('{:.9g}'.format(nn_output[j]), end=' ', file=fi, flush=True)           
+                    print('{:.9g}'.format(nn_output[j]), end=' ', file=fi, flush=True)
                     # print(decimal.Decimal(nn_output[j]), end=' ', file=fi, flush=True)
                 print(" ",file=fi)
-        
+
         fi.close()
 
         print("File output_python.txt generated.")
@@ -185,31 +186,31 @@ class CodeGenerator(ABC):
             return Softmax()
 
     def flatten_array_orderc(self, array):
-    
+
         flattened_aray = array.flatten(order='C')
         s = '\n        {'
         for i in range(flattened_aray.size):
             s += str(flattened_aray[i])+', '
         s = s[:-2]
         s+='}'
-        
+
         return s
-    
+
     def flatten_array_orderf(self, array):
-    
+
         flattened_aray = array.flatten(order='F')
         s = '\n        {'
         for i in range(flattened_aray.size):
             s += str(flattened_aray[i])+', '
         s = s[:-2]
         s+='}'
-        
+
         return s
 
     def flatten_array_hybrid(self, array):
 
         ndim = array.ndim
-        
+
         if ndim > 2:
             array = array.reshape(-1, *array.shape[-(ndim-2):])
             flattened_aray = array.flatten(order='F')
@@ -222,7 +223,7 @@ class CodeGenerator(ABC):
             s += str(flattened_aray[i])+', '
         s = s[:-2]
         s+='}'
-        
+
         return s
 
     @abstractmethod
@@ -253,7 +254,7 @@ class CodeGenerator(ABC):
             for j in range(self.test_dataset.shape[0]):
                 t += self.flatten_array_orderc(self.test_dataset[j]) +','
             t = t[:-1]
-        
+
         t += '};\n'
 
         testdataset_source.write(t)
@@ -317,7 +318,7 @@ class CodeGenerator_V1(CodeGenerator):
 
         testdataset_files = ['test_dataset.h', 'test_dataset.c']
         self.files_to_gen.extend(testdataset_files)
-            
+
         q = 0
         for file in self.files_to_gen:
             filename = Path(os.path.join(self.c_files_directory, file))
@@ -343,23 +344,23 @@ class CodeGenerator_V1(CodeGenerator):
 
         self.generate_layers_c_files()
         print('Generated layers files.')
-        self.generate_actvfunctions_c_files()   
-        print('Generated actvfunctions files.') 
+        self.generate_actvfunctions_c_files()
+        print('Generated actvfunctions files.')
         self.generate_function_source_file()
-        print('Generated function source file.') 
+        print('Generated function source file.')
         self.generate_function_header_file()
-        print('Generated function header file.') 
+        print('Generated function header file.')
         self.generate_globalvars_file()
-        print('Generated globalvars .c file.') 
+        print('Generated globalvars .c file.')
         self.generate_main_file()
         print('Generated main file.')
         self.generate_makefile()
         print('Generated Makefile.')
         self.generate_testdataset_files()
-        print('Generated testdataset files.') 
+        print('Generated testdataset files.')
 
     def generate_layers_c_files(self):
-        
+
         self.layers_source_file.write('#include <stdio.h> \n#include <math.h> \n#include "layers.h" \n#include "inference.h"\n\n')
         self.layers_header_file.write('#ifndef LAYERS_H_ \n#define LAYERS_H_\n\n')
 
@@ -370,7 +371,7 @@ class CodeGenerator_V1(CodeGenerator):
             else:
                 layers_to_write.append(layer.name)
                 layer.write_to_layer_c_files(self.data_type, self.version, self.layers_source_file, self.layers_header_file)
-                
+
         self.layers_header_file.write('\n#endif')
 
     def generate_actvfunctions_c_files(self):
@@ -386,10 +387,10 @@ class CodeGenerator_V1(CodeGenerator):
                 else:
                     activations_to_write.append(layer.activation_function.name)
                     layer.activation_function.generate_activation_c_files(self.data_type, self.actvfunctions_source_file, self.actvfunctions_header_file)
-                    
+
             except AttributeError:
                 pass
-        
+
         self.actvfunctions_header_file.write('\n#endif')
 
     def generate_function_source_file(self):
@@ -409,7 +410,7 @@ class CodeGenerator_V1(CodeGenerator):
         self.source_file.write('    return 0;\n}')
 
     def generate_function_header_file(self):
-        
+
         self.header_file.write('#ifndef INFERENCE_H_ \n')
         self.header_file.write('#define INFERENCE_H_ \n\n' )
 
@@ -420,17 +421,17 @@ class CodeGenerator_V1(CodeGenerator):
         self.nb_files = 0
 
         for layer in self.layers:
-            
+
             layer.write_to_function_header_file(self.version, self.header_file)
-            
+
             if layer.size > self.l_size_max : self.l_size_max = layer.size
-            if layer.size < self.l_size_min : self.l_size_min = layer.size         
-            if hasattr(layer, 'weights'): 
-                self.nb_files += 1  
+            if layer.size < self.l_size_min : self.l_size_min = layer.size
+            if hasattr(layer, 'weights'):
+                self.nb_files += 1
                 if layer.nb_weights > self.nb_weights_max : self.nb_weights_max = layer.nb_weights
                 if layer.nb_biases > self.nb_biases_max : self.nb_biases_max = layer.nb_biases
-            
-            
+
+
         self.header_file.write( '#define nb_layers ' + str(len(self.layers)) + '\n')
         self.header_file.write('#define nb_params_max 14 \n')
         self.header_file.write('#define l_size_max ' + str(self.l_size_max) + '\n')
@@ -459,12 +460,12 @@ class CodeGenerator_V1(CodeGenerator):
         self.header_file.write('extern struct layer net[nb_layers];\n\n')
         self.header_file.write('int inference('+ self.data_type +' *prediction, '+ self.data_type +' *nn_input);\n\n')
         self.header_file.write('#endif')
-    
+
     def generate_globalvars_file(self):
         self.globalvars_file.write('#include "inference.h" \n')
         self.globalvars_file.write('#include "layers.h" \n')
         self.globalvars_file.write('#include "activation_functions.h" \n\n')
-        
+
         for layer in self.layers:
             if hasattr(layer, 'weights'):
                 self.globalvars_file.write(self.data_type + ' weights_' + layer.name + '_' + str("{:02d}".format(layer.idx)) + '[' + str(layer.nb_weights) + '] = ' \
@@ -476,15 +477,15 @@ class CodeGenerator_V1(CodeGenerator):
         self.globalvars_file.write('struct layer net[nb_layers] = {\n')
 
         for layer in self.layers:
-            layer.write_to_globalvars_file(self.version, self.data_type, self.globalvars_file)            
+            layer.write_to_globalvars_file(self.version, self.data_type, self.globalvars_file)
 
         self.globalvars_file.write('};')
         self.globalvars_file.write('\n')
-    
+
     def generate_flowfacts_guide(self, c_files_directory):
-        
+
         self.c_files_directory = c_files_directory
-        flowfacts_guide_file = open(self.c_files_directory + '/ff_guide.json' , "w+") 
+        flowfacts_guide_file = open(self.c_files_directory + '/ff_guide.json' , "w+")
 
         flowfacts_guide = {}
 
@@ -493,7 +494,7 @@ class CodeGenerator_V1(CodeGenerator):
         inference_function = {}
         inference_function['name'] = 'Inference'
         inference_function['inner'] = []
-        
+
         inference_function['inner'].append({})
         inference_function['inner'][0]['type'] = 'for loop'
         inference_function['inner'][0]['variable'] = 'i'
@@ -523,14 +524,14 @@ class CodeGenerator_V2(CodeGenerator):
         super().__init__(**kwds)
         self.version = 'v2'
         self.files_to_gen = ['inference.c', 'inference.h', 'global_vars.c', 'main.c', 'Makefile']
-    
+
     def generate_c_files(self, c_files_directory, force=False):
 
         self.c_files_directory = c_files_directory
 
         testdataset_files = ['test_dataset.h', 'test_dataset.c']
         self.files_to_gen.extend(testdataset_files)
-        
+
         q = 0
         for file in self.files_to_gen:
             filename = Path(os.path.join(self.c_files_directory, file))
@@ -543,7 +544,7 @@ class CodeGenerator_V2(CodeGenerator):
 
         if not force and q != 0:
             exit()
-        else:                               
+        else:
             self.source_file = open(self.c_files_directory + '/inference.c' , "a+")
             self.header_file = open(self.c_files_directory + '/inference.h' , "a+")
             self.globalvars_file = open(self.c_files_directory + '/global_vars.c' , "a+")
@@ -551,23 +552,23 @@ class CodeGenerator_V2(CodeGenerator):
             self.makefile = open(self.c_files_directory + '/Makefile' , "a+")
 
         self.generate_function_source_file()
-        print('Generated function source file.') 
+        print('Generated function source file.')
         self.generate_function_header_file()
-        print('Generated function header file.') 
+        print('Generated function header file.')
         self.generate_globalvars_file()
-        print('Generated globalvars .c file.') 
+        print('Generated globalvars .c file.')
         self.generate_main_file()
         print('Generated main file.')
         self.generate_makefile()
         print('Generated Makefile.')
         self.generate_testdataset_files()
         print('Generated testdataset files.')
-      
+
     def generate_function_source_file(self):
 
         self.l_size_max = 1
         for layer in (self.layers):
-            if layer.size > self.l_size_max : self.l_size_max = layer.size            
+            if layer.size > self.l_size_max : self.l_size_max = layer.size
 
         self.source_file.write('#include <stdio.h>\n')
         self.source_file.write('#include <math.h>\n')
@@ -584,7 +585,7 @@ class CodeGenerator_V2(CodeGenerator):
         for layer in self.layers:
 
             layer.write_to_function_source_file(self.data_type, self.version, self.source_file)
-            
+
             if layer.idx > 0:
                 self.source_file.write('    for (int k = 0; k < ' + str(layer.size) + '; ++k)\n')
 
@@ -592,7 +593,7 @@ class CodeGenerator_V2(CodeGenerator):
                     self.source_file.write('        prediction[k] = output_cur[k];\n\n')
                 else:
                     self.source_file.write('        output_pre[k] = output_cur[k];\n\n')
-            
+
         self.source_file.write('    return 0;\n}')
 
     def generate_function_header_file(self):
@@ -612,7 +613,7 @@ class CodeGenerator_V2(CodeGenerator):
 
         self.header_file.write('\nint inference('+ self.data_type +' *prediction, '+ self.data_type +' *nn_input);\n\n')
         self.header_file.write('#endif')
-    
+
     def generate_globalvars_file(self):
 
         self.globalvars_file.write('#include "inference.h" \n\n')
@@ -623,9 +624,9 @@ class CodeGenerator_V2(CodeGenerator):
                                             + self.flatten_array_orderc(layer.weights) + ';\n')
                     self.globalvars_file.write(self.data_type + ' biases_' + layer.name + '_' + str("{:02d}".format(layer.idx)) + '[' + str(layer.nb_biases) + '] = ' \
                                             + self.flatten_array_orderc(layer.biases) + ';\n\n')
-    
+
 class CodeGenerator_V3(CodeGenerator_V2):
-    
+
     def __init__(self, **kwds):
         super().__init__(**kwds)
         self.version = 'v3'
@@ -636,7 +637,7 @@ class CodeGenerator_V3(CodeGenerator_V2):
         self.c_files_directory = c_files_directory
 
         self.files_to_gen.append('inference.c')
-        
+
         q = 0
         for file in self.files_to_gen:
             filename = Path(os.path.join(self.c_files_directory, file))
@@ -656,9 +657,9 @@ class CodeGenerator_V3(CodeGenerator_V2):
             self.source_file = open(c_files_directory + '/inference.c' , "a+")
 
         self.generate_function_source_file()
-        print('Generated function source file.') 
+        print('Generated function source file.')
         self.generate_function_header_file()
-        print('Generated function header file.') 
+        print('Generated function header file.')
         self.generate_main_file()
         print('Generated main file.')
         self.generate_makefile()
@@ -667,10 +668,10 @@ class CodeGenerator_V3(CodeGenerator_V2):
         print('Generated testdataset files.')
 
     def generate_function_source_file(self):
-        
+
         self.l_size_max = 1
         for layer in (self.layers):
-            if layer.size > self.l_size_max : self.l_size_max = layer.size            
+            if layer.size > self.l_size_max : self.l_size_max = layer.size
 
         self.source_file.write('#include <stdio.h>\n')
         self.source_file.write('#include <math.h>\n')
@@ -684,19 +685,19 @@ class CodeGenerator_V3(CodeGenerator_V2):
         self.source_file.write('    ' + self.data_type + ' max;\n')
         self.source_file.write('    int count;\n\n')
 
-        for layer in self.layers:                           
+        for layer in self.layers:
             layer.write_to_function_source_file(self.data_type, self.version, self.source_file)
 
             if layer.idx > 0:
                 for k in range(layer.size):
-                                       
+
                     if layer.idx == len(self.layers)-1:
                         self.source_file.write('    prediction['+str(k)+'] = output_cur['+str(k)+'];\n')
                     else:
                         self.source_file.write('    output_pre['+str(k)+'] = output_cur['+str(k)+'];\n')
-                        
+
                 self.source_file.write('\n')
-            
+
         self.source_file.write('\n    return 0;\n}')
 
     def generate_function_header_file(self):
@@ -741,16 +742,45 @@ class CodeGenerator_V4(CodeGenerator_V1):
 
 
 class TemplatedCodeGenerator(CodeGenerator):
+    HEADER_SUFFIXES = (".h", ".hpp")
+    SOURCE_SUFFIXES = (".c", ".cpp", ".cu")
+
     def __init__(self, **kwds):
         super().__init__(**kwds)
         self.version = 'v5'
-        self.files_to_gen = ['layers.c', 'layers.h', 'activation_functions.c', 'activation_functions.h', 'inference.c', 'inference.h', 'global_vars.c', 'main.c', 'Makefile']
+
+    def generate_dataset_files(self, renderer, directory):
+        from .templates import DatasetHeaderTemplate, DatasetSourceTemplate
+
+        with (directory / "test_dataset.h").open("w") as dataset_header:
+            header_template = DatasetHeaderTemplate(self.data_type, self.nb_tests, self.layers[0].size, self.layers[-1].size)
+            dataset_header.write(renderer.render(header_template))
+
+        with (directory / "test_dataset.c").open("w") as dataset_source:
+            source_template = DatasetSourceTemplate(self.data_type, self.test_dataset)
+            dataset_source.write(renderer.render(source_template))
+
+        return directory / "test_dataset.h", directory / "test_dataset.c"
 
     def generate_c_files(self, c_files_directory, force=False):
-        from pystache import Renderer
-        from .templates import MakefileTemplate
-
+        from .templates import MakefileTemplate, MainTemplate
+        c_files_root = Path(c_files_directory)
         renderer = Renderer()
-        makefile = MakefileTemplate(["layers.c"], ["layers.h"], "lenet5", "nvcc")
-        print(renderer.render(makefile))
+
+        generated_files = []
+        generated_files += self.generate_dataset_files(renderer, c_files_root)
+
+        # Generate entry point
+        with (c_files_root / "main.c").open("w") as main_file:
+            main_template = MainTemplate()
+            main_file.write(renderer.render(main_template))
+            generated_files.append(c_files_root / "main.c")
+
+        # Generate build Makefile
+        header_files = {h.name for h in generated_files if h.suffix.lower() in self.HEADER_SUFFIXES}
+        source_files = {c.name for c in generated_files if c.suffix.lower() in self.SOURCE_SUFFIXES}
+        with (c_files_root / "Makefile").open("w") as makefile_file:
+            makefile_template = MakefileTemplate(source_files, header_files, self.function_name, "nvcc")
+            makefile_file.write(renderer.render(makefile_template))
+            generated_files.append(c_files_root / "Makefile")
 
