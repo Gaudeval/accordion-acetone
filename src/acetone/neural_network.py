@@ -226,7 +226,7 @@ class CodeGenerator(ABC):
         return s
 
     @abstractmethod
-    def generate_c_files(self, force=False):
+    def generate_c_files(self, c_files_directory, force=False):
         pass
 
     def generate_testdataset_files(self):

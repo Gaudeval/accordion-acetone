@@ -45,11 +45,11 @@ class Layers(ABC):
         super().__init__()
 
     @abstractmethod
-    def write_to_layer_c_files(self):
+    def write_to_layer_c_files(self, data_type, version, layers_source_file, layers_header_file):
         pass
 
     @abstractmethod
-    def feedforward(self):
+    def feedforward(self, input):
         pass
 
     def flatten_array_orderc(self, array):
@@ -495,7 +495,7 @@ def conv2d_implicit(
     # Compute output
     for f in range(0, F, M):
         for o in range(0, volume_of((OH, OW)), N):
-            # Compute output[o:o+n,f] using M*K fragments at a time
+            # Compute output[o:o+n,f] using K fragments at a time
             for k in range(0, volume_of((KH, KW, C)), K):
                 A = np.zeros((M, K))
                 B = np.zeros((K, N))
