@@ -830,7 +830,7 @@ class TemplatedCodeGenerator(CodeGenerator):
 
         # Generate global variables
         with (c_files_root / "global_vars.cpp").open("w") as globals_file:
-            globals_template = GlobalsTemplate()
+            globals_template = GlobalsTemplate(self.layers, self.data_type)
             globals_file.write(renderer.render(globals_template))
             generated_files.append(c_files_root / "global_vars.cpp")
 

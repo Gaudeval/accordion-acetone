@@ -3,6 +3,8 @@ import pystache
 
 from typing import Iterable
 
+from acetone.layers import Layers
+
 
 class MakefileTemplate(pystache.TemplateSpec):
     template_name = "Makefile"
@@ -98,6 +100,36 @@ class LayersHeaderTemplate(pystache.TemplateSpec):
         self.has_dense = has_dense
         self.has_softmax = has_softmax
 
-# TODO
+
 class GlobalsTemplate(pystache.TemplateSpec):
     template_name = "global_vars_c"
+
+    def __init__(self, layers: Iterable[Layers], data_type: str):
+        self.data_type = data_type
+        self.layers = []
+        for i in layers:
+            descriptor = {}
+            descriptor["idx"] = i.idx
+            descriptor["inference_function"] = i.name
+            if hasattr(i, "activation_function"):
+                descriptor["activation_function"] = i.activation_function.name
+            else:
+                descriptor["activation_function"] = False
+            if hasattr(i, "weights"):
+                descriptor["weights"] = {
+                    "var": "weights_%s_%-02d" % (i.name, i.idx),
+                    "size": str(i.nb_weights),
+                    "contents": "{" + ", ".join(str(v) for v in i.weights.flatten(order="C")) + "}",
+                }
+            else:
+                descriptor["weights"] = False
+            if hasattr(i, "biases"):
+                # TODO self.flatten_array_orderc(layer.weights)
+                descriptor["biases"] = {
+                    "var": "biases_%s_%-02d" % (i.name, i.idx),
+                    "size": str(i.nb_biases),
+                    "contents": "{" + ", ".join(str(v) for v in i.biases.flatten(order="C")) + "}",
+                }
+            else:
+                descriptor["biases"] = False
+            self.layers.append(descriptor)
