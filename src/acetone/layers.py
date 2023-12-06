@@ -464,8 +464,8 @@ def input_index_of(
 
 
 def conv2d_implicit(
-        F: int,
-        C: int,
+        FF: int,
+        CC: int,
         OH: int,
         OW: int,
         KH: int,
@@ -484,19 +484,19 @@ def conv2d_implicit(
         N: int = 8,
         K: int = 4,
 ):
-    assert all(s >= d for s, d in zip(output.shape, (OH, OW, F)))
-    assert all(s >= d for s, d in zip(weights.shape, (KH, KW, C, F)))
-    assert all(s >= d for s, d in zip(input.shape, (IH, IW, C)))
-    assert biases.shape == (F,)
+    assert all(s >= d for s, d in zip(output.shape, (OH, OW, FF)))
+    assert all(s >= d for s, d in zip(weights.shape, (KH, KW, CC, FF)))
+    assert all(s >= d for s, d in zip(input.shape, (IH, IW, CC)))
+    assert biases.shape == (FF,)
     # Initialise output with biases
-    for o in range(volume_of((OH, OW, F))):
-        oh, ow, f = indices_of(o, (OH, OW, F))
-        output[oh, ow, f] = biases[f]
+    for i in range(volume_of((OH, OW, FF))):
+        oh, ow, g = indices_of(i, (OH, OW, FF))
+        output[oh, ow, g] = biases[g]
     # Compute output
-    for f in range(0, F, M):
-        for o in range(0, volume_of((OH, OW)), N):
+    for g in range(0, FF, M):
+        for i in range(0, volume_of((OH, OW)), N):
             # Compute output[o:o+n,f] using K fragments at a time
-            for k in range(0, volume_of((KH, KW, C)), K):
+            for k in range(0, volume_of((KH, KW, CC)), K):
                 A = np.zeros((M, K))
                 B = np.zeros((K, N))
                 # _ = np.zeros((M, N))
@@ -505,17 +505,17 @@ def conv2d_implicit(
                     ah, aw = indices_of(a, (M, K))
                     # A[f:f+M,:] identifies a filter
                     # A[:, k:k+K] identifies the contents of a filter
-                    if f + ah < F and k + aw < volume_of((KH, KW, C)):
-                        kh, kw, c = indices_of(k + aw, (KH, KW, C))
-                        A[ah, aw] = weights[kh, kw, c, f + ah]
+                    if g + ah < FF and k + aw < volume_of((KH, KW, CC)):
+                        kh, kw, c = indices_of(k + aw, (KH, KW, CC))
+                        A[ah, aw] = weights[kh, kw, c, g + ah]
                     else:
                         A[ah, aw] = 0.0
                 # Copy matching input into B
                 for b in range(volume_of((K, N))):
                     bh, bw = indices_of(b, (K, N))
-                    if o + bw < volume_of((OH, OW)) and k + bh < volume_of((KH, KW, C)):
-                        oh, ow = indices_of(o + bw, (OH, OW))
-                        kh, kw, c = indices_of(k + bh, (KH, KW, C))
+                    if i + bw < volume_of((OH, OW)) and k + bh < volume_of((KH, KW, CC)):
+                        oh, ow = indices_of(i + bw, (OH, OW))
+                        kh, kw, c = indices_of(k + bh, (KH, KW, CC))
                         ih = input_index_of(oh, kh, strides, dilation, pad_left)
                         iw = input_index_of(ow, kw, strides, dilation, pad_top)
                         B[bh, bw] = input[ih, iw, c]
@@ -528,9 +528,9 @@ def conv2d_implicit(
                     for n in range(N):
                         # Each line is a filter
                         # Each column is an output element
-                        if f + m < F and o + n < volume_of((OH, OW)):
-                            oh, ow = indices_of(o + n, (OH, OW))
-                            output[oh, ow, f + m] += D[m, n]
+                        if g + m < FF and i + n < volume_of((OH, OW)):
+                            oh, ow = indices_of(i + n, (OH, OW))
+                            output[oh, ow, g + m] += D[m, n]
 
 
 def define_conv2D(strides: int, dilation: int, pad_left:int, pad_top: int):

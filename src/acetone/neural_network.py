@@ -781,11 +781,12 @@ class TemplatedCodeGenerator(CodeGenerator):
         }
 
         #
-        header_files = {h.name for h in self.template_fragments.keys() if Path(h).suffix.lower() in self.HEADER_SUFFIXES}
-        source_files = {c.name for c in self.template_fragments.keys() if Path(c).suffix.lower() in self.SOURCE_SUFFIXES}
+        header_files = {Path(h).name for h in self.template_fragments.keys() if Path(h).suffix.lower() in self.HEADER_SUFFIXES}
+        source_files = {Path(c).name for c in self.template_fragments.keys() if Path(c).suffix.lower() in self.SOURCE_SUFFIXES}
         self.template_fragments["Makefile"] = MakefileTemplate(source_files, header_files, self.function_name, "nvcc")
 
     def apply_template(self, template: TemplateSpec, renderer: Renderer, output_path: str | Path):
+        print(f"Generating {output_path.name} using template {template.template_name}")
         with output_path.open("w") as output_file:
             output_file.write(renderer.render(template))
 
@@ -795,3 +796,20 @@ class TemplatedCodeGenerator(CodeGenerator):
 
         for filename, template in self.template_fragments.items():
             self.apply_template(template, renderer, c_files_root / filename)
+
+
+class MmaTemplatedCodeGenerator(TemplatedCodeGenerator):
+    HEADER_SUFFIXES = (".h", ".hpp")
+    SOURCE_SUFFIXES = (".c", ".cpp", ".cu")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.version = "v6"
+        self.template_fragments["layers.hpp"] = MmaLayersHeaderTemplate(
+            has_input=any(isinstance(i, InputLayer) for i in self.layers),
+            has_convolution2D=any(isinstance(i, Conv2D) for i in self.layers),
+            has_max_pooling2D=any(isinstance(i, MaxPooling2D) for i in self.layers),
+            has_average_pooling2D=any(isinstance(i, AveragePooling2D) for i in self.layers),
+            has_dense=any(isinstance(i, Dense) for i in self.layers),
+            has_softmax=any(isinstance(i, Softmax) for i in self.layers),
+        )

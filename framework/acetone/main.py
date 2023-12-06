@@ -20,7 +20,9 @@
 
 import argparse
 import numpy as np
-from acetone.neural_network import CodeGenerator_V1, CodeGenerator_V2, CodeGenerator_V3, CodeGenerator_V4, TemplatedCodeGenerator
+from acetone.neural_network import CodeGenerator_V1, CodeGenerator_V2, CodeGenerator_V3, CodeGenerator_V4, \
+    TemplatedCodeGenerator, MmaTemplatedCodeGenerator
+
 
 def main(model_file, test_dataset_file, function_name, nb_tests, version, output_dir, force=False):
 
@@ -31,6 +33,7 @@ def main(model_file, test_dataset_file, function_name, nb_tests, version, output
                         'v3' : CodeGenerator_V3,
                         'v4' : CodeGenerator_V4,
                         'v5' : TemplatedCodeGenerator,
+                        'v6' : MmaTemplatedCodeGenerator,
                         }
 
     codegen_class = version_mapping[version]

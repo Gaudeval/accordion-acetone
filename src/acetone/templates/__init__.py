@@ -101,6 +101,10 @@ class LayersHeaderTemplate(pystache.TemplateSpec):
         self.has_softmax = has_softmax
 
 
+class MmaLayersHeaderTemplate(LayersHeaderTemplate):
+    template_name = "layers_mma_hpp"
+
+
 class GlobalsTemplate(pystache.TemplateSpec):
     template_name = "global_vars_c"
 

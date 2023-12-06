@@ -1,0 +1,200 @@
+/* Perform a matrix-multiply add operation: D = A * B + C */
+/* TODO Declare this with M, N, K as C++ template parameters
+        Add correct array sizes in the declaration for A, B, C, and D
+        Specialise for "accepted" variants on platform. 
+ */
+template<typename F, size_t M, size_t N, size_t K>
+void perform_mma(const F A[M][K], const F B[K][N], F C[M][N], F D[M][N])
+{
+    // assert A.shape == (M, K)
+    // assert B.shape == (K, N)
+    // assert C.shape == (M, N)
+    for (size_t m = 0; m < M; ++m)
+    {
+        for (size_t n = 0; n < N; ++n)
+        {
+            D[m][n] = C[m][n];
+            for (size_t k = 0; k < K; ++k)
+            {
+                D[m][n] += A[m][k] * B[k][n];
+            }
+        }
+    }
+}
+
+template <typename F>
+int Conv2D(int layer_idx, F *input, F *output)
+{
+    // Number of filters
+    const size_t FF = net[layer_idx].nb_filters;
+    // Number of channels
+    const size_t CC = net[layer_idx].input_channels;
+    // Output spatial dimensions
+    const size_t OH = net[layer_idx].output_height;
+    const size_t OW = net[layer_idx].output_width;
+    // Kernel spatial dimensions
+    const size_t KH = net[layer_idx].kernel_size;
+    const size_t KW = net[layer_idx].kernel_size;
+    // Input spatial dimensions
+    const size_t IH = net[layer_idx].input_height;
+    const size_t IW = net[layer_idx].input_width;
+    // Convolution parameters
+    const size_t pad_left = net[layer_idx].pad_left;
+    const size_t pad_top = net[layer_idx].pad_top;
+    const size_t strides = net[layer_idx].strides;
+    const size_t dilation = net[layer_idx].dilation_rate;
+    
+    // MMA dimensions
+    const size_t M = 32;
+    const size_t N = 8;
+    const size_t K = 16;
+   
+    // Initialise output with biases
+    // for i in range(volume_of((OH, OW, FF))):
+        // oh, ow, g = indices_of(i, (OH, OW, FF))
+        // output[oh, ow, g] = biases[g]
+    for (size_t i = 0, ilen = OH * OW * FF; i < ilen; ++i)
+    {
+        output[i] = net[layer_idx].biases[i % FF];
+    }
+    
+    // Process filters M at a time (mapping each filter to a line in A)
+    // for g in range(0, FF, M):
+    for (size_t g = 0; g < FF; g += M)
+    {
+        // Process output elements N at time (mapping each output element to a column in B)
+        // for i in range(0, volume_of((OH, OW)), N):
+        for (size_t i = 0, ilen=OH * OW; i < ilen; i += N)
+        {
+            // Compute output[i:i+n,g] using K fragments at a time
+            // for k in range(0, volume_of((KH, KW, CC)), K):
+            for (size_t k = 0, klen=KH * KW * CC; k < klen; k += K)
+            {
+                // A = np.zeros((M, K))
+                // B = np.zeros((K, N))
+                F A[M][K];
+                F B[K][N];
+                F X[M][N];
+                F D[M][N];
+                
+                for (size_t m = 0; m < M; ++m)
+                {
+                    for (size_t n = 0; n < N; ++n)
+                    {
+                        X[m][n] = 0.0;
+                        D[m][n] = 0.0;
+                    }
+                }
+                
+                // Copy weights[k:k+K, g:g+M] into A[0:M, 0:K]
+                // TODO Add a as a loop index
+                for (size_t ah = 0; ah < M; ++ah)
+                {
+                    for (size_t aw = 0; aw < K; ++aw)                    
+                    {
+                        // A[:M, :] identifies a filter in weights[:,g:g+M]
+                        // A[:,  :K] identifies the contents of a filter in weights[k:k+K,:]
+                        // if g + ah < FF and k + aw < volume_of((KH, KW, CC)):
+                        if (g + ah < FF && k + aw < klen)
+                        {
+                            // kh, kw, c = indices_of(k + aw, (KH, KW, CC))
+                            size_t kh = (k + aw) % (KH * KW * CC) / (KW * CC);
+                            size_t kw = (k + aw) % (KW * CC) / CC;
+                            size_t kc = (k + aw) % (CC) / 1;
+                            // TODO Check weights[kh, kw, kc,:] is weights[k,:] and simplify
+                            // A[ah, aw] = weights[kh, kw, c, g + ah]
+                            A[ah][aw] = net[layer_idx].weights[((kh * KW + kw) * CC + kc) * FF + (g + ah)];
+                        } 
+                        else 
+                        {
+                            A[ah][aw] = 0.0;
+                        }
+                            
+                    }
+                }                
+                    
+                // Copy matching input into B
+                // for b in range(volume_of((K, N))):
+                for (size_t bh = 0; bh < K; ++bh)
+                {
+                    for (size_t bw = 0; bw < N; ++bw)
+                    {
+                        // bh, bw = indices_of(b, (K, N))
+                                            
+                        
+                        // if i + bw < volume_of((OH, OW)) and k + bh < volume_of((KH, KW, CC)):
+                        if (i + bw < ilen && k + bh < klen)
+                        {
+                            // oh, ow = indices_of(i + bw, (OH, OW))
+                            size_t oh = (i + bw) % (OH * OW) / OW;
+                            size_t ow = (i + bw) % OW / 1;
+                            // kh, kw, c = indices_of(k + bh, (KH, KW, C))                           
+                            size_t kh = (k + bh) % (KH * KW * CC) / (KW * CC);
+                            size_t kw = (k + bh) % (KW * CC) / CC;
+                            size_t kc = (k + bh) % (CC) / 1;
+                            // Compute input indices
+                            // ih = input_index_of(oh, kh, strides, dilation, pad_left)
+                            size_t ih = oh * strides + kh * dilation - pad_left;
+                            // iw = input_index_of(ow, kw, strides, dilation, pad_top)
+                            size_t iw = ow * strides + kw * dilation - pad_top;
+                            if (0 <= ih < IH && 0 <= iw < IW)
+                            {
+                                // B[bh, bw] = input[ih, iw, c]
+                                B[bh][bw] = input[(ih * IW + iw) * CC + kc];
+                            }
+                            else
+                            {
+                                B[bh][bw] = 0.0;
+                            }
+                            
+                        }
+                        else
+                        {
+                            B[bh][bw] = 0.0;
+                        }
+                    }
+                }
+                    
+                // D = mma(M, N, K, A, B, np.zeros((M, N)))
+                perform_mma<F, M, N, K>(A, B, X, D);
+                
+                // # Copy result into output
+                
+                    
+                        // # Each line is a filter
+                        // # Each column is an output element
+                        
+                            
+
+                // Copy result into output
+                // for m in range(M):
+                for (size_t m = 0; m < M; ++m)
+                {
+                    // for n in range(N):
+                    for (size_t n = 0; n < N; ++n)
+                    {
+                        // Each line in D is a filter
+                        // Each column in D is an output element
+                        // if g + m < FF and i + n < volume_of((OH, OW)):
+                        if (g + m < FF && i + n < ilen)
+                        {
+                            // oh, ow = indices_of(i + n, (OH, OW))
+                            size_t oh = (i + n) % (OH * OW) / OW;
+                            size_t ow = (i + n) % OW / 1;
+                            // output[oh, ow, g + m] += D[m, n]
+                            output[(oh * OW + ow) * FF + (g + m)] += D[m][n];    
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // Apply activation function
+    for (size_t i = 0, ilen = OH * OW * FF; i < ilen; ++i)
+    {
+        output[i] = net[layer_idx].actv_function(output[i]);
+    }
+    
+    return 0;
+}
