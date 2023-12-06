@@ -23,12 +23,14 @@ import json
 import numpy as np
 from pathlib import Path
 from itertools import islice
-from pystache import Renderer
+from pystache import Renderer, TemplateSpec
 from .activation_functions import Linear, ReLu, Sigmoid, TanH, ActivationFunctions
-from .layers import AveragePooling2D, MaxPooling2D, InputLayer, Dense, Conv2D, Softmax, Layers
+from .layers import AveragePooling2D, MaxPooling2D, InputLayer, Dense, Conv2D, Softmax
 from abc import ABC, abstractmethod
 
 import acetone.templates
+from .templates import *
+
 
 class CodeGenerator(ABC):
 
@@ -751,22 +753,6 @@ class TemplatedCodeGenerator(CodeGenerator):
         super().__init__(**kwds)
         self.version = 'v5'
 
-    def generate_dataset_files(self, renderer, directory):
-        from .templates import DatasetHeaderTemplate, DatasetSourceTemplate
-
-        with (directory / "test_dataset.hpp").open("w") as dataset_header:
-            header_template = DatasetHeaderTemplate(self.data_type, self.nb_tests, self.layers[0].size, self.layers[-1].size)
-            dataset_header.write(renderer.render(header_template))
-
-        with (directory / "test_dataset.cpp").open("w") as dataset_source:
-            source_template = DatasetSourceTemplate(self.data_type, self.test_dataset)
-            dataset_source.write(renderer.render(source_template))
-
-        return directory / "test_dataset.hpp", directory / "test_dataset.cpp"
-
-    def generate_activation_function_files(self, renderer, directory):
-        from .templates import ActivationFunctionHeaderTemplate, ActivationFunctionSourceTemplate
-
         # Collect used activation functions
         activation_functions: dict[str, ActivationFunctions] = {}
         for i in self.layers:
@@ -774,77 +760,38 @@ class TemplatedCodeGenerator(CodeGenerator):
                 f = i.activation_function
                 activation_functions[f.name] = f
 
-        with (directory / "activation_functions.hpp").open("w") as activation_header:
-            header_template = ActivationFunctionHeaderTemplate(
-                (f.generate_c_declaration(self.data_type) for f in activation_functions.values())
-            )
-            activation_header.write(renderer.render(header_template))
-
-        with (directory / "activation_functions.cpp").open("w") as activation_source:
-            source_template = ActivationFunctionSourceTemplate(
-                (f.generate_c_definition(self.data_type) for f in activation_functions.values())
-            )
-            activation_source.write(renderer.render(source_template))
-
-        return directory / "activation_functions.hpp", directory / "activation_functions.cpp"
-
-    def generate_inference_files(self, renderer, directory):
-        from .templates import InferenceHeaderTemplate, InferenceSourceTemplate
-
-        with (directory / "inference.hpp").open("w") as inference_header:
-            header_template = InferenceHeaderTemplate(self.layers)
-            inference_header.write(renderer.render(header_template))
-
-        with (directory / "inference.cpp").open("w") as inference_source:
-            source_template = InferenceSourceTemplate(self.data_type)
-            inference_source.write(renderer.render(source_template))
-
-        return directory / "inference.hpp", directory / "inference.cpp"
-
-    def generate_layers_files(self, renderer, directory):
-        from .templates import LayersHeaderTemplate
-
-        with (directory / "layers.hpp").open("w") as layers_header:
-            header_template = LayersHeaderTemplate(
+        # Collect templates
+        self.template_fragments = {
+            "test_dataset.hpp": DatasetHeaderTemplate(self.data_type, self.nb_tests, self.layers[0].size, self.layers[-1].size),
+            "test_dataset.cpp": DatasetSourceTemplate(self.data_type, self.test_dataset),
+            "activation_functions.hpp": ActivationFunctionHeaderTemplate((f.generate_c_declaration(self.data_type) for f in activation_functions.values())),
+            "activation_functions.cpp": ActivationFunctionSourceTemplate( (f.generate_c_definition(self.data_type) for f in activation_functions.values())),
+            "inference.hpp": InferenceHeaderTemplate(self.layers),
+            "inference.cpp": InferenceSourceTemplate(self.data_type),
+            "layers.cpp": LayersHeaderTemplate(
                 has_input=any(isinstance(i, InputLayer) for i in self.layers),
                 has_convolution2D=any(isinstance(i, Conv2D) for i in self.layers),
                 has_max_pooling2D=any(isinstance(i, MaxPooling2D) for i in self.layers),
                 has_average_pooling2D=any(isinstance(i, AveragePooling2D) for i in self.layers),
                 has_dense=any(isinstance(i, Dense) for i in self.layers),
                 has_softmax=any(isinstance(i, Softmax) for i in self.layers),
-            )
-            layers_header.write(renderer.render(header_template))
+            ),
+            "global_vars.cpp": GlobalsTemplate(self.layers, self.data_type),
+            "main.cpp": MainTemplate(self.data_type),
+        }
 
-        return (directory / "layers.hpp", )
+        #
+        header_files = {h.name for h in self.template_fragments.keys() if Path(h).suffix.lower() in self.HEADER_SUFFIXES}
+        source_files = {c.name for c in self.template_fragments.keys() if Path(c).suffix.lower() in self.SOURCE_SUFFIXES}
+        self.template_fragments["Makefile"] = MakefileTemplate(source_files, header_files, self.function_name, "nvcc")
+
+    def apply_template(self, template: TemplateSpec, renderer: Renderer, output_path: str | Path):
+        with output_path.open("w") as output_file:
+            output_file.write(renderer.render(template))
 
     def generate_c_files(self, c_files_directory, force=False):
-        from .templates import MakefileTemplate, MainTemplate, GlobalsTemplate
         c_files_root = Path(c_files_directory)
         renderer = Renderer(search_dirs=os.path.dirname(acetone.templates.__file__))
 
-        generated_files = []
-        generated_files += self.generate_dataset_files(renderer, c_files_root)
-        generated_files += self.generate_activation_function_files(renderer, c_files_root)
-        generated_files += self.generate_inference_files(renderer, c_files_root)
-        generated_files += self.generate_layers_files(renderer, c_files_root)
-
-        # Generate global variables
-        with (c_files_root / "global_vars.cpp").open("w") as globals_file:
-            globals_template = GlobalsTemplate(self.layers, self.data_type)
-            globals_file.write(renderer.render(globals_template))
-            generated_files.append(c_files_root / "global_vars.cpp")
-
-        # Generate entry point
-        with (c_files_root / "main.cpp").open("w") as main_file:
-            main_template = MainTemplate(self.data_type)
-            main_file.write(renderer.render(main_template))
-            generated_files.append(c_files_root / "main.cpp")
-
-        # Generate build Makefile
-        header_files = {h.name for h in generated_files if h.suffix.lower() in self.HEADER_SUFFIXES}
-        source_files = {c.name for c in generated_files if c.suffix.lower() in self.SOURCE_SUFFIXES}
-        with (c_files_root / "Makefile").open("w") as makefile_file:
-            makefile_template = MakefileTemplate(source_files, header_files, self.function_name, "nvcc")
-            makefile_file.write(renderer.render(makefile_template))
-            generated_files.append(c_files_root / "Makefile")
-
+        for filename, template in self.template_fragments.items():
+            self.apply_template(template, renderer, c_files_root / filename)
