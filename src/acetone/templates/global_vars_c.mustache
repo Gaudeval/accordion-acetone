@@ -4,52 +4,53 @@
 
 {{#layers}}
     {{#weights}}
-{{data_type}} {{weights.var}}[{{weights.size}}] = {{weights.contents}};
-
+{{data_type}} {{weights.var}}[{{weights.size}}] =
+        {{weights.contents}};
     {{/weights}}
     {{#biases}}
-{{data_type}} {{biases.var}}[{{biases.size}}] = {{biases.contents}};
+{{data_type}} {{biases.var}}[{{biases.size}}] =
+        {{biases.contents}};
 
     {{/biases}}
 {{/layers}}
 
-struct layer net[NB_LAYERS] = {
+struct layer net[nb_layers] = {
 {{#layers}}
     [{{idx}}] = {
-        .layer_type =     &{{inference_function}}<{{data_type}}>,
-        .layer_size =     L{{idx}}_SIZE,
-        .pad_right =      L{{idx}}_PAD_RIGHT,
-        .pad_left =       L{{idx}}_PAD_LEFT,
-        .pad_bottom =     L{{idx}}_PAD_BOTTOM,
-        .pad_top =        L{{idx}}_PAD_TOP,
-        .strides =        L{{idx}}_STRIDES,
-        .pool_size =      L{{idx}}_POOL_SIZE,
-        .kernel_size =    L{{idx}}_KERNEL_SIZE,
-        .dilation_rate =  L{{idx}}_DILATION_RATE,
-        .nb_filters =     L{{idx}}_NB_FILTERS,
-        .input_channels = L{{idx}}_INPUT_CHANNELS,
-        .input_height =   L{{idx}}_INPUT_HEIGHT,
-        .input_width =    L{{idx}}_INPUT_WIDTH,
-        .output_height =  L{{idx}}_OUTPUT_HEIGHT,
-        .output_width =   L{{idx}}_OUTPUT_WIDTH,
+        .layer_type = &{{inference_function}}<{{data_type}}>,
+        .layer_size = l{{idx}}_size,
+        .pad_right = l{{idx}}_pad_right,
+        .pad_left = l{{idx}}_pad_left,
+        .pad_bottom = l{{idx}}_pad_bottom,
+        .pad_top = l{{idx}}_pad_top,
+        .strides = l{{idx}}_strides,
+        .pool_size = l{{idx}}_pool_size,
+        .kernel_size = l{{idx}}_kernel_size,
+        .dilation_rate = l{{idx}}_dilation_rate,
+        .nb_filters = l{{idx}}_nb_filters,
+        .input_channels = l{{idx}}_input_channels,
+        .input_height = l{{idx}}_input_height,
+        .input_width = l{{idx}}_input_width,
+        .output_height = l{{idx}}_output_height,
+        .output_width = l{{idx}}_output_width,
         {{#weights}}
-        .weights =        {{weights.var}},
+        .weights = {{weights.var}},
         {{/weights}}
         {{^weights}}
-        .weights =        0x0,
+        .weights = 0x0,
         {{/weights}}
         {{#biases}}
-        .biases =         {{biases.var}},
+        .biases = {{biases.var}},
         {{/biases}}
         {{^biases}}
-        .biases =         0x0,
+        .biases = 0x0,
         {{/biases}}
         {{#activation_function}}
-        .actv_function =  {{activation_function}}
+        .actv_function =  {{activation_function}},
         {{/activation_function}}
         {{^activation_function}}
-        .actv_function =  0x0
+        .actv_function = 0x0
         {{/activation_function}}
-    },
+        },
 {{/layers}}
 };

@@ -6,17 +6,18 @@
 /* TODO Add array sizes to input parameters*/
 int inference(float prediction[], float nn_input[])
 {
-    static {{data_type}} output_pre[L_SIZE_MAX];
-    static {{data_type}} output_cur[L_SIZE_MAX];
+    static {{data_type}} output_pre[l_size_max];
+    static {{data_type}} output_cur[l_size_max];
 
     net[0].layer_type(0, nn_input, output_pre);
 
-    for (int i=1; i < NB_LAYERS; ++i)
+    for (int i=1; i < nb_layers; ++i)
     {
+
         net[i].layer_type(i, output_pre, output_cur);
 
         for (int j = 0; j < net[i].layer_size; ++j){
-            if (i < NB_LAYERS-1){
+            if (i < nb_layers-1){
                 output_pre[j] = output_cur[j];
             }
             else

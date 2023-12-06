@@ -12,23 +12,23 @@ int main(int argc, char** argv)
 
     FILE *fp = fopen(path, "w+");
 
-    {{data_type}} predictions[NB_SAMPLES][NN_OUTPUT_SIZE];
+    {{data_type}} predictions[nb_samples][nn_output_size];
 
     clock_t t0 = clock();
-    for (int i = 0; i < NB_SAMPLES; ++i){
+    for (int i = 0; i < nb_samples; ++i){
         inference(predictions[i], nn_test_inputs[i]);
     }
     clock_t t1 = clock();
 
-    printf("   Average time over %d tests: %e s \n", NB_SAMPLES,
-            (float)(t1-t0)/NB_SAMPLES/(float)CLOCKS_PER_SEC/(float)100);
+    printf("   average time over %d tests: %e s \n", nb_samples,
+            (float)(t1-t0)/nb_samples/(float)CLOCKS_PER_SEC/(float)100);
 
-    printf("   ACETONE framework's inference output: \n");
-    for (int i = 0; i < NB_SAMPLES; ++i){
-        for (int j = 0; j < NN_OUTPUT_SIZE; ++j){
+    printf("   acetone framework's inference output: \n");
+    for (int i = 0; i < nb_samples; ++i){
+        for (int j = 0; j < nn_output_size; ++j){
             fprintf(fp,"%.9g ", predictions[i][j]);
             printf("%.9g ", predictions[i][j]);
-            if (j == NN_OUTPUT_SIZE - 1){
+            if (j == nn_output_size - 1){
                 fprintf(fp, "\n");
                 printf("\n");
             }

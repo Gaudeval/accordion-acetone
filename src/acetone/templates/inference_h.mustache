@@ -2,97 +2,97 @@
 #define INFERENCE_H_
 
 {{#layers}}
-#define L{{idx}}_SIZE           ({{size}}u)
+#define l{{idx}}_size           {{size}}
 {{#pad_right}}
-#define L{{idx}}_PAD_RIGHT      ({{pad_right}}u)
+#define l{{idx}}_pad_right      {{pad_right}}
 {{/pad_right}}
 {{^pad_right}}
-#define L{{idx}}_PAD_RIGHT      (0x0u)
+#define l{{idx}}_pad_right      0x0
 {{/pad_right}}
 {{#pad_left}}
-#define L{{idx}}_PAD_LEFT       ({{pad_left}}u)
+#define l{{idx}}_pad_left       {{pad_left}}
 {{/pad_left}}
 {{^pad_left}}
-#define L{{idx}}_PAD_LEFT       (0x0u)
+#define l{{idx}}_pad_left       0x0
 {{/pad_left}}
 {{#pad_bottom}}
-#define L{{idx}}_PAD_BOTTOM     ({{pad_bottom}}u)
+#define l{{idx}}_pad_bottom     {{pad_bottom}}
 {{/pad_bottom}}
 {{^pad_bottom}}
-#define L{{idx}}_PAD_BOTTOM     (0x0u)
+#define l{{idx}}_pad_bottom     0x0
 {{/pad_bottom}}
 {{#pad_top}}
-#define L{{idx}}_PAD_TOP        ({{pad_top}}u)
+#define l{{idx}}_pad_top        {{pad_top}}
 {{/pad_top}}
 {{^pad_top}}
-#define L{{idx}}_PAD_TOP        (0x0u)
+#define l{{idx}}_pad_top        0x0
 {{/pad_top}}
 {{#strides}}
-#define L{{idx}}_STRIDES        ({{strides}}u)
+#define l{{idx}}_strides        {{strides}}
 {{/strides}}
 {{^strides}}
-#define L{{idx}}_STRIDES        (0x0u)
+#define l{{idx}}_strides        0x0
 {{/strides}}
 {{#pool_size}}
-#define L{{idx}}_POOL_SIZE      ({{pool_size}}u)
+#define l{{idx}}_pool_size      {{pool_size}}
 {{/pool_size}}
 {{^pool_size}}
-#define L{{idx}}_POOL_SIZE      (0x0u)
+#define l{{idx}}_pool_size      0x0
 {{/pool_size}}
 {{#kernel_size}}
-#define L{{idx}}_KERNEL_SIZE    ({{kernel_size}}u)
+#define l{{idx}}_kernel_size    {{kernel_size}}
 {{/kernel_size}}
 {{^kernel_size}}
-#define L{{idx}}_KERNEL_SIZE    (0x0u)
+#define l{{idx}}_kernel_size    0x0
 {{/kernel_size}}
 {{#dilation_rate}}
-#define L{{idx}}_DILATION_RATE  ({{dilation_rate}}u)
+#define l{{idx}}_dilation_rate  {{dilation_rate}}
 {{/dilation_rate}}
 {{^dilation_rate}}
-#define L{{idx}}_DILATION_RATE  (0x0u)
+#define l{{idx}}_dilation_rate  0x0
 {{/dilation_rate}}
 {{#nb_filters}}
-#define L{{idx}}_NB_FILTERS     ({{nb_filters}}u)
+#define l{{idx}}_nb_filters     {{nb_filters}}
 {{/nb_filters}}
 {{^nb_filters}}
-#define L{{idx}}_NB_FILTERS     (0x0u)
+#define l{{idx}}_nb_filters     0x0
 {{/nb_filters}}
 {{#input_height}}
-#define L{{idx}}_INPUT_HEIGHT   ({{input_height}}u)
+#define l{{idx}}_input_height   {{input_height}}
 {{/input_height}}
 {{^input_height}}
-#define L{{idx}}_INPUT_HEIGHT   (0x0u)
+#define l{{idx}}_input_height   0x0
 {{/input_height}}
 {{#input_width}}
-#define L{{idx}}_INPUT_WIDTH    ({{input_width}}u)
+#define l{{idx}}_input_width    {{input_width}}
 {{/input_width}}
 {{^input_width}}
-#define L{{idx}}_INPUT_WIDTH    (0x0u)
+#define l{{idx}}_input_width    0x0
 {{/input_width}}
 {{#input_channels}}
-#define L{{idx}}_INPUT_CHANNELS ({{input_channels}}u)
+#define l{{idx}}_input_channels {{input_channels}}
 {{/input_channels}}
 {{^input_channels}}
-#define L{{idx}}_INPUT_CHANNELS (0x0u)
+#define l{{idx}}_input_channels 0x0
 {{/input_channels}}
-{{#ouput_height}}
-#define L{{idx}}_OUTPUT_HEIGHT  ({{output_height}}u)
-{{/ouput_height}}
-{{^ouput_height}}
-#define L{{idx}}_OUTPUT_HEIGHT  (0x0u)
-{{/ouput_height}}
+{{#output_height}}
+#define l{{idx}}_output_height  {{output_height}}
+{{/output_height}}
+{{^output_height}}
+#define l{{idx}}_output_height  0x0
+{{/output_height}}
 {{#output_width}}
-#define L{{idx}}_OUTPUT_WIDTH   ({{output_width}}u)
+#define l{{idx}}_output_width   {{output_width}}
 {{/output_width}}
 {{^output_width}}
-#define L{{idx}}_OUTPUT_WIDTH   (0x0u)
+#define l{{idx}}_output_width   0x0
 {{/output_width}}
 
 {{/layers}}
 
-#define NB_LAYERS     ({{nb_layers}}u)
-#define NB_PARAMS_MAX ({{max_layer_params}}u)
-#define L_SIZE_MAX    ({{max_layer_size}}u)
+#define nb_layers     {{nb_layers}}
+#define nb_params_max {{max_layer_params}}
+#define l_size_max    {{max_layer_size}}
 
 struct layer
 {
@@ -117,7 +117,7 @@ struct layer
     float (*actv_function)(float);
 };
 
-extern struct layer net[NB_LAYERS];
+extern struct layer net[nb_layers];
 
 int inference(float *prediction, float *nn_input);
 

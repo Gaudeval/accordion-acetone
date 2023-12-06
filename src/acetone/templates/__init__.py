@@ -117,7 +117,7 @@ class GlobalsTemplate(pystache.TemplateSpec):
                 descriptor["activation_function"] = False
             if hasattr(i, "weights"):
                 descriptor["weights"] = {
-                    "var": "weights_%s_%-02d" % (i.name, i.idx),
+                    "var": "weights_{}_{:02d}" .format(i.name, i.idx),
                     "size": str(i.nb_weights),
                     "contents": "{" + ", ".join(str(v) for v in i.weights.flatten(order="C")) + "}",
                 }
@@ -126,7 +126,7 @@ class GlobalsTemplate(pystache.TemplateSpec):
             if hasattr(i, "biases"):
                 # TODO self.flatten_array_orderc(layer.weights)
                 descriptor["biases"] = {
-                    "var": "biases_%s_%-02d" % (i.name, i.idx),
+                    "var": "biases_{}_{:02d}" .format(i.name, i.idx),
                     "size": str(i.nb_biases),
                     "contents": "{" + ", ".join(str(v) for v in i.biases.flatten(order="C")) + "}",
                 }

@@ -1,6 +1,5 @@
 #include "test_dataset.hpp"
 
 /* TODO Set as const if appropriate */
-{{data_type}} nn_test_inputs[NB_SAMPLES][NN_INPUT_SIZE] = {
-    {{#dataset}}{{.}}{{/dataset}}
-};
+{{data_type}} nn_test_inputs[nb_samples][nn_input_size] = {
+        {{#dataset}}{{.}}{{/dataset}}};
