@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <math.h>
-#include "layers.h"
-#include "inference.h"
+#include "layers.hpp"
+#include "inference.hpp"
 
-int inference(float prediction[net[nb_layers-1].layer_size], float nn_input[net[0].layer_size])
+/* TODO Add array sizes to input parameters*/
+int inference(float prediction[], float nn_input[])
 {
     static {{data_type}} output_pre[l_size_max];
     static {{data_type}} output_cur[l_size_max];

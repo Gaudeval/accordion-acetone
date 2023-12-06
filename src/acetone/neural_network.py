@@ -754,15 +754,15 @@ class TemplatedCodeGenerator(CodeGenerator):
     def generate_dataset_files(self, renderer, directory):
         from .templates import DatasetHeaderTemplate, DatasetSourceTemplate
 
-        with (directory / "test_dataset.h").open("w") as dataset_header:
+        with (directory / "test_dataset.hpp").open("w") as dataset_header:
             header_template = DatasetHeaderTemplate(self.data_type, self.nb_tests, self.layers[0].size, self.layers[-1].size)
             dataset_header.write(renderer.render(header_template))
 
-        with (directory / "test_dataset.c").open("w") as dataset_source:
+        with (directory / "test_dataset.cpp").open("w") as dataset_source:
             source_template = DatasetSourceTemplate(self.data_type, self.test_dataset)
             dataset_source.write(renderer.render(source_template))
 
-        return directory / "test_dataset.h", directory / "test_dataset.c"
+        return directory / "test_dataset.hpp", directory / "test_dataset.cpp"
 
     def generate_activation_function_files(self, renderer, directory):
         from .templates import ActivationFunctionHeaderTemplate, ActivationFunctionSourceTemplate
@@ -774,32 +774,32 @@ class TemplatedCodeGenerator(CodeGenerator):
                 f = i.activation_function
                 activation_functions[f.name] = f
 
-        with (directory / "activation_function.h").open("w") as activation_header:
+        with (directory / "activation_functions.hpp").open("w") as activation_header:
             header_template = ActivationFunctionHeaderTemplate(
                 (f.generate_c_declaration(self.data_type) for f in activation_functions.values())
             )
             activation_header.write(renderer.render(header_template))
 
-        with (directory / "activation_function.c").open("w") as activation_source:
+        with (directory / "activation_functions.cpp").open("w") as activation_source:
             source_template = ActivationFunctionSourceTemplate(
                 (f.generate_c_definition(self.data_type) for f in activation_functions.values())
             )
             activation_source.write(renderer.render(source_template))
 
-        return directory / "activation_function.h", directory / "activation_function.c"
+        return directory / "activation_functions.hpp", directory / "activation_functions.cpp"
 
     def generate_inference_files(self, renderer, directory):
         from .templates import InferenceHeaderTemplate, InferenceSourceTemplate
 
-        with (directory / "inference.h").open("w") as inference_header:
+        with (directory / "inference.hpp").open("w") as inference_header:
             header_template = InferenceHeaderTemplate()
             inference_header.write(renderer.render(header_template))
 
-        with (directory / "inference.c").open("w") as inference_source:
+        with (directory / "inference.cpp").open("w") as inference_source:
             source_template = InferenceSourceTemplate(self.data_type)
             inference_source.write(renderer.render(source_template))
 
-        return directory / "inference.h", directory / "inference.c"
+        return directory / "inference.hpp", directory / "inference.cpp"
 
     def generate_layers_files(self, renderer, directory):
         from .templates import LayersHeaderTemplate
@@ -829,16 +829,16 @@ class TemplatedCodeGenerator(CodeGenerator):
         generated_files += self.generate_layers_files(renderer, c_files_root)
 
         # Generate global variables
-        with (c_files_root / "global_vars.c").open("w") as globals_file:
+        with (c_files_root / "global_vars.cpp").open("w") as globals_file:
             globals_template = GlobalsTemplate()
             globals_file.write(renderer.render(globals_template))
-            generated_files.append(c_files_root / "global_vars.c")
+            generated_files.append(c_files_root / "global_vars.cpp")
 
         # Generate entry point
-        with (c_files_root / "main.c").open("w") as main_file:
+        with (c_files_root / "main.cpp").open("w") as main_file:
             main_template = MainTemplate(self.data_type)
             main_file.write(renderer.render(main_template))
-            generated_files.append(c_files_root / "main.c")
+            generated_files.append(c_files_root / "main.cpp")
 
         # Generate build Makefile
         header_files = {h.name for h in generated_files if h.suffix.lower() in self.HEADER_SUFFIXES}

@@ -73,21 +73,21 @@
 struct layer
 {
     int (*layer_type)(int, float*, float*);
-    int layer_size;
-    int pad_right;
-    int pad_left;
-    int pad_bottom;
-    int pad_top;
-    int strides;
-    int pool_size;
-    int kernel_size;
-    int dilation_rate;
-    int nb_filters;
-    int input_channels;
-    int input_height;
-    int input_width;
-    int output_height;
-    int output_width;
+    const int layer_size;
+    const int pad_right;
+    const int pad_left;
+    const int pad_bottom;
+    const int pad_top;
+    const int strides;
+    const int pool_size;
+    const int kernel_size;
+    const int dilation_rate;
+    const int nb_filters;
+    const int input_channels;
+    const int input_height;
+    const int input_width;
+    const int output_height;
+    const int output_width;
     float *weights;
     float *biases;
     float (*actv_function)(float);
