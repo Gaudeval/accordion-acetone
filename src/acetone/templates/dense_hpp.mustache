@@ -1,0 +1,18 @@
+template<typename F>
+int Dense(int layer_idx, F *input, F *output)
+{
+    F dotproduct;
+
+    for (int i = 0; i < net[layer_idx].layer_size; ++i)
+    {
+        dotproduct = 0;
+        for (int j = 0; j < net[layer_idx-1].layer_size; ++j)
+        {
+            dotproduct += input[j] * (net[layer_idx].weights[(j*net[layer_idx].layer_size+i)]);
+        }
+        dotproduct += net[layer_idx].biases[i];
+        output[i] = net[layer_idx].actv_function(dotproduct);
+    }
+
+    return 0;
+}

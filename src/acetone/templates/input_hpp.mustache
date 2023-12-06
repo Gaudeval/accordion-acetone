@@ -1,0 +1,10 @@
+template<typename F>
+int Input_layer(int layer_idx, F *input, F *output)
+{
+    for (int i = 0; i < net[layer_idx].layer_size; ++i)
+    {
+        output[i] = input[i];
+    }
+
+    return 0;
+}

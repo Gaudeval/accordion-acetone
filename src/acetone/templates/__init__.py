@@ -74,15 +74,24 @@ class InferenceHeaderTemplate(pystache.TemplateSpec):
     template_name = "inference_h"
 
 
-# TODO
-class LayersSourceTemplate(pystache.TemplateSpec):
-    template_name = "layers_c"
-
-
-# TODO
 class LayersHeaderTemplate(pystache.TemplateSpec):
-    template_name = "layers_h"
+    template_name = "layers_hpp"
 
+    def __init__(
+            self,
+            has_input: bool = False,
+            has_convolution2D: bool = False,
+            has_max_pooling2D: bool = False,
+            has_average_pooling2D: bool = False,
+            has_dense: bool = False,
+            has_softmax: bool = False,
+    ):
+        self.has_input = has_input
+        self.has_convolution2D = has_convolution2D
+        self.has_max_pooling2D = has_max_pooling2D
+        self.has_average_pooling2D = has_average_pooling2D
+        self.has_dense = has_dense
+        self.has_softmax = has_softmax
 
 # TODO
 class GlobalsTemplate(pystache.TemplateSpec):

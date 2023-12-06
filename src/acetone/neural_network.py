@@ -28,6 +28,8 @@ from .activation_functions import Linear, ReLu, Sigmoid, TanH, ActivationFunctio
 from .layers import AveragePooling2D, MaxPooling2D, InputLayer, Dense, Conv2D, Softmax, Layers
 from abc import ABC, abstractmethod
 
+import acetone.templates
+
 class CodeGenerator(ABC):
 
     def __init__(self, json_file, test_dataset_file = None, function_name = 'inference', nb_tests = None, **kwds):
@@ -800,25 +802,25 @@ class TemplatedCodeGenerator(CodeGenerator):
         return directory / "inference.h", directory / "inference.c"
 
     def generate_layers_files(self, renderer, directory):
-        from .templates import LayersHeaderTemplate, LayersSourceTemplate
+        from .templates import LayersHeaderTemplate
 
-        # Collect used activation functions
-        used_layers: dict[str, Layers] = {i.name: i for i in self.layers}
-
-        with (directory / "layers.h").open("w") as layers_header:
-            header_template = LayersHeaderTemplate()
+        with (directory / "layers.hpp").open("w") as layers_header:
+            header_template = LayersHeaderTemplate(
+                has_input=any(isinstance(i, InputLayer) for i in self.layers),
+                has_convolution2D=any(isinstance(i, Conv2D) for i in self.layers),
+                has_max_pooling2D=any(isinstance(i, MaxPooling2D) for i in self.layers),
+                has_average_pooling2D=any(isinstance(i, AveragePooling2D) for i in self.layers),
+                has_dense=any(isinstance(i, Dense) for i in self.layers),
+                has_softmax=any(isinstance(i, Softmax) for i in self.layers),
+            )
             layers_header.write(renderer.render(header_template))
 
-        with (directory / "layers.c").open("w") as layers_source:
-            source_template = LayersSourceTemplate()
-            layers_source.write(renderer.render(source_template))
-
-        return directory / "layers.h", directory / "inference.c"
+        return (directory / "layers.hpp", )
 
     def generate_c_files(self, c_files_directory, force=False):
         from .templates import MakefileTemplate, MainTemplate, GlobalsTemplate
         c_files_root = Path(c_files_directory)
-        renderer = Renderer()
+        renderer = Renderer(search_dirs=os.path.dirname(acetone.templates.__file__))
 
         generated_files = []
         generated_files += self.generate_dataset_files(renderer, c_files_root)

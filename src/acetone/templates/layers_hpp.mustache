@@ -1,0 +1,16 @@
+#ifndef LAYERS_HPP_
+#define LAYERS_HPP_
+
+{{#has_input}}{{>input_hpp}}{{/has_input}}
+
+{{#has_convolution2D}}{{>convolution2D_hpp}}{{/has_convolution2D}}
+
+{{#has_max_pooling2D}}{{>maxpooling2D_hpp}}{{/has_max_pooling2D}}
+
+{{#has_average_pooling2D}}{{>averagepooling2D_hpp}}{{/has_average_pooling2D}}
+
+{{#has_dense}}{{>dense_hpp}}{{/has_dense}}
+
+{{#has_softmax}}{{>softmax_hpp}}{{/has_softmax}}
+
+#endif

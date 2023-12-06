@@ -1,0 +1,38 @@
+template <typename F>
+int Conv2D(int layer_idx, F *input, F *output)
+{
+    F sum;
+
+    for (int f = 0; f < net[layer_idx].nb_filters; ++f)
+    {
+        for (int i = 0; i < net[layer_idx].output_height; ++i)
+        {
+            for (int j = 0; j < net[layer_idx].output_width; ++j)
+            {
+                sum = 0;
+
+                for (int c = 0; c < net[layer_idx].input_channels; ++c)
+                {
+                    for (int m = 0; m < net[layer_idx].kernel_size; ++m)
+                    {
+                        for (int n = 0; n < net[layer_idx].kernel_size; ++n)
+                        {
+                            int ii = i*net[layer_idx].strides + m*net[layer_idx].dilation_rate - net[layer_idx].pad_left;
+                            int jj = j*net[layer_idx].strides + n*net[layer_idx].dilation_rate - net[layer_idx].pad_top;
+
+                            if (ii >= 0 && ii < net[layer_idx].input_height && jj >= 0 && jj < net[layer_idx].input_width)
+                            {
+                                sum += input[(ii*net[layer_idx].input_width + jj)*net[layer_idx].input_channels + c] * net[layer_idx].weights[((m*net[layer_idx].kernel_size + n)*net[layer_idx].input_channels + c)*net[layer_idx].nb_filters + f];
+                            }
+                        }
+                   }
+                }
+
+                sum += net[layer_idx].biases[f];
+                output[(i*net[layer_idx].output_width + j)*net[layer_idx].nb_filters + f] = net[layer_idx].actv_function(sum);
+            }
+        }
+    }
+
+    return 0;
+}

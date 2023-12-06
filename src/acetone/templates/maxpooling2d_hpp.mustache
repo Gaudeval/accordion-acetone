@@ -1,0 +1,38 @@
+/* TODO Declare as a 'Pooling' template, with the actual applied function and locals as a template argument. */
+template<typename F>
+int MaxPooling2D(int layer_idx, F *input, F *output)
+{
+    F max;
+
+    for (int c = 0; c < net[layer_idx].input_channels; ++c)
+    {
+        for (int i = 0; i < net[layer_idx].output_height; ++i)
+        {
+            for (int j = 0; j < net[layer_idx].output_width; ++j)
+            {
+                max = -INFINITY;
+
+                for (int m = 0; m < net[layer_idx].pool_size; ++m)
+                {
+                    for (int n = 0; n < net[layer_idx].pool_size; ++n)
+                    {
+                        int ii = i*net[layer_idx].strides + m - net[layer_idx].pad_left;
+                        int jj = j*net[layer_idx].strides + n - net[layer_idx].pad_top;
+                        if (ii >= 0 && ii < net[layer_idx].input_height && jj >= 0 && jj < net[layer_idx].input_width)
+                        {
+                            F v = input[(ii*net[layer_idx].input_width + jj)*net[layer_idx].input_channels + c];
+                            if (v > max)
+                            {
+                                max = v;
+                            }
+
+                        }
+                    }
+                }
+                output[(i*net[layer_idx].output_width + j)*net[layer_idx].input_channels + c] = max;
+            }
+        }
+    }
+
+    return 0;
+}

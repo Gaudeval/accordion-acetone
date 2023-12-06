@@ -1,0 +1,10 @@
+template<typename F>
+int Softmax(int layer_idx, F *input, F *output)
+{
+    F sum = 0;
+    for (int i = 0; i < net[layer_idx].layer_size; ++i)
+        sum += exp(input[i]);
+    for (int j = 0; j < net[layer_idx].layer_size; ++j)
+        output[j] = exp(input[j])/sum;
+    return 0;
+}
