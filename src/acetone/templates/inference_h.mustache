@@ -90,9 +90,10 @@
 
 {{/layers}}
 
-#define nb_layers 9
-#define nb_params_max 14
-#define l_size_max 3456
+#define NB_LAYERS     ({{nb_layers}}u)
+#define NB_PARAMS_MAX ({{max_layer_params}}u)
+#define L_SIZE_MAX    ({{max_layer_size}}u)
+
 struct layer
 {
     int (*layer_type)(int, float*, float*);
@@ -116,7 +117,7 @@ struct layer
     float (*actv_function)(float);
 };
 
-extern struct layer net[nb_layers];
+extern struct layer net[NB_LAYERS];
 
 int inference(float *prediction, float *nn_input);
 

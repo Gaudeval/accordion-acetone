@@ -69,12 +69,14 @@ class InferenceSourceTemplate(pystache.TemplateSpec):
         self.data_type = data_type
 
 
-# TODO
 class InferenceHeaderTemplate(pystache.TemplateSpec):
     template_name = "inference_h"
 
     def __init__(self, layers):
         self.layers = layers
+        self.nb_layers = len(layers)
+        self.max_layer_size = max(i.size for i in layers)
+        self.max_layer_params = 14 # TODO Find where this magic number originates from
 
 
 class LayersHeaderTemplate(pystache.TemplateSpec):
