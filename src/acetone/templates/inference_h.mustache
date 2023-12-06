@@ -1,71 +1,94 @@
 #ifndef INFERENCE_H_
 #define INFERENCE_H_
 
-#define l0_size 784
+{{#layers}}
+#define L{{idx}}_SIZE           ({{size}}u)
+{{#pad_right}}
+#define L{{idx}}_PAD_RIGHT      ({{pad_right}}u)
+{{/pad_right}}
+{{^pad_right}}
+#define L{{idx}}_PAD_RIGHT      (0x0u)
+{{/pad_right}}
+{{#pad_left}}
+#define L{{idx}}_PAD_LEFT       ({{pad_left}}u)
+{{/pad_left}}
+{{^pad_left}}
+#define L{{idx}}_PAD_LEFT       (0x0u)
+{{/pad_left}}
+{{#pad_bottom}}
+#define L{{idx}}_PAD_BOTTOM     ({{pad_bottom}}u)
+{{/pad_bottom}}
+{{^pad_bottom}}
+#define L{{idx}}_PAD_BOTTOM     (0x0u)
+{{/pad_bottom}}
+{{#pad_top}}
+#define L{{idx}}_PAD_TOP        ({{pad_top}}u)
+{{/pad_top}}
+{{^pad_top}}
+#define L{{idx}}_PAD_TOP        (0x0u)
+{{/pad_top}}
+{{#strides}}
+#define L{{idx}}_STRIDES        ({{strides}}u)
+{{/strides}}
+{{^strides}}
+#define L{{idx}}_STRIDES        (0x0u)
+{{/strides}}
+{{#pool_size}}
+#define L{{idx}}_POOL_SIZE      ({{pool_size}}u)
+{{/pool_size}}
+{{^pool_size}}
+#define L{{idx}}_POOL_SIZE      (0x0u)
+{{/pool_size}}
+{{#kernel_size}}
+#define L{{idx}}_KERNEL_SIZE    ({{kernel_size}}u)
+{{/kernel_size}}
+{{^kernel_size}}
+#define L{{idx}}_KERNEL_SIZE    (0x0u)
+{{/kernel_size}}
+{{#dilation_rate}}
+#define L{{idx}}_DILATION_RATE  ({{dilation_rate}}u)
+{{/dilation_rate}}
+{{^dilation_rate}}
+#define L{{idx}}_DILATION_RATE  (0x0u)
+{{/dilation_rate}}
+{{#nb_filters}}
+#define L{{idx}}_NB_FILTERS     ({{nb_filters}}u)
+{{/nb_filters}}
+{{^nb_filters}}
+#define L{{idx}}_NB_FILTERS     (0x0u)
+{{/nb_filters}}
+{{#input_height}}
+#define L{{idx}}_INPUT_HEIGHT   ({{input_height}}u)
+{{/input_height}}
+{{^input_height}}
+#define L{{idx}}_INPUT_HEIGHT   (0x0u)
+{{/input_height}}
+{{#input_width}}
+#define L{{idx}}_INPUT_WIDTH    ({{input_width}}u)
+{{/input_width}}
+{{^input_width}}
+#define L{{idx}}_INPUT_WIDTH    (0x0u)
+{{/input_width}}
+{{#input_channels}}
+#define L{{idx}}_INPUT_CHANNELS ({{input_channels}}u)
+{{/input_channels}}
+{{^input_channels}}
+#define L{{idx}}_INPUT_CHANNELS (0x0u)
+{{/input_channels}}
+{{#ouput_height}}
+#define L{{idx}}_OUTPUT_HEIGHT  ({{output_height}}u)
+{{/ouput_height}}
+{{^ouput_height}}
+#define L{{idx}}_OUTPUT_HEIGHT  (0x0u)
+{{/ouput_height}}
+{{#output_width}}
+#define L{{idx}}_OUTPUT_WIDTH   ({{output_width}}u)
+{{/output_width}}
+{{^output_width}}
+#define L{{idx}}_OUTPUT_WIDTH   (0x0u)
+{{/output_width}}
 
-#define l1_size 3456
-#define l1_pad_right 0
-#define l1_pad_left 0
-#define l1_pad_bottom 0
-#define l1_pad_top 0
-#define l1_strides 1
-#define l1_kernel_size 5
-#define l1_dilation_rate 1
-#define l1_nb_filters 6
-#define l1_input_height 28
-#define l1_input_width 28
-#define l1_input_channels 1
-#define l1_output_height 24
-#define l1_output_width 24
-
-#define l2_size 864
-#define l2_pad_right 0
-#define l2_pad_left 0
-#define l2_pad_bottom 0
-#define l2_pad_top 0
-#define l2_strides 2
-#define l2_pool_size 2
-#define l2_input_height 24
-#define l2_input_width 24
-#define l2_input_channels 6
-#define l2_output_height 12
-#define l2_output_width 12
-
-#define l3_size 1024
-#define l3_pad_right 0
-#define l3_pad_left 0
-#define l3_pad_bottom 0
-#define l3_pad_top 0
-#define l3_strides 1
-#define l3_kernel_size 5
-#define l3_dilation_rate 1
-#define l3_nb_filters 16
-#define l3_input_height 12
-#define l3_input_width 12
-#define l3_input_channels 6
-#define l3_output_height 8
-#define l3_output_width 8
-
-#define l4_size 256
-#define l4_pad_right 0
-#define l4_pad_left 0
-#define l4_pad_bottom 0
-#define l4_pad_top 0
-#define l4_strides 2
-#define l4_pool_size 2
-#define l4_input_height 8
-#define l4_input_width 8
-#define l4_input_channels 16
-#define l4_output_height 4
-#define l4_output_width 4
-
-#define l5_size 120
-
-#define l6_size 84
-
-#define l7_size 10
-
-#define l8_size 10
+{{/layers}}
 
 #define nb_layers 9
 #define nb_params_max 14

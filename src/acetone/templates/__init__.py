@@ -73,6 +73,9 @@ class InferenceSourceTemplate(pystache.TemplateSpec):
 class InferenceHeaderTemplate(pystache.TemplateSpec):
     template_name = "inference_h"
 
+    def __init__(self, layers):
+        self.layers = layers
+
 
 class LayersHeaderTemplate(pystache.TemplateSpec):
     template_name = "layers_hpp"

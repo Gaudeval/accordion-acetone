@@ -792,7 +792,7 @@ class TemplatedCodeGenerator(CodeGenerator):
         from .templates import InferenceHeaderTemplate, InferenceSourceTemplate
 
         with (directory / "inference.hpp").open("w") as inference_header:
-            header_template = InferenceHeaderTemplate()
+            header_template = InferenceHeaderTemplate(self.layers)
             inference_header.write(renderer.render(header_template))
 
         with (directory / "inference.cpp").open("w") as inference_source:
