@@ -16,7 +16,7 @@
 
 struct layer net[nb_layers] = {
 {{#layers}}
-    [{{idx}}] = {
+    {
         .layer_type = &{{inference_function}}<{{data_type}}>,
         .layer_size = l{{idx}}_size,
         .pad_right = l{{idx}}_pad_right,

@@ -814,3 +814,25 @@ class MmaTemplatedCodeGenerator(TemplatedCodeGenerator):
             has_dense=any(isinstance(i, Dense) for i in self.layers),
             has_softmax=any(isinstance(i, Softmax) for i in self.layers),
         )
+
+class GpuMmaTemplatedCodeGenerator(TemplatedCodeGenerator):
+    HEADER_SUFFIXES = (".h", ".hpp")
+    SOURCE_SUFFIXES = (".c", ".cpp", ".cu")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.version = "v7"
+        self.template_fragments["layers.hpp"] = GpuMmaLayersHeaderTemplate(
+            has_input=any(isinstance(i, InputLayer) for i in self.layers),
+            has_convolution2D=any(isinstance(i, Conv2D) for i in self.layers),
+            has_max_pooling2D=any(isinstance(i, MaxPooling2D) for i in self.layers),
+            has_average_pooling2D=any(isinstance(i, AveragePooling2D) for i in self.layers),
+            has_dense=any(isinstance(i, Dense) for i in self.layers),
+            has_softmax=any(isinstance(i, Softmax) for i in self.layers),
+        )
+
+        self.template_fragments["global_vars.cu"] = self.template_fragments["global_vars.cpp"]
+        del self.template_fragments["global_vars.cpp"]
+
+        self.template_fragments["inference.cu"] = self.template_fragments["inference.cpp"]
+        del self.template_fragments["inference.cpp"]
