@@ -1,25 +1,53 @@
-/* Perform a matrix-multiply add operation: D = A * B + C */
-/* TODO Declare this with M, N, K as C++ template parameters
-        Add correct array sizes in the declaration for A, B, C, and D
-        Specialise for "accepted" variants on platform.
- */
-template<typename F, size_t M, size_t N, size_t K>
-void perform_mma(const F A[M][K], const F B[K][N], F C[M][N], F D[M][N])
-{
-    // assert A.shape == (M, K)
-    // assert B.shape == (K, N)
-    // assert C.shape == (M, N)
+
+template<typename G, size_t M, size_t N, size_t K>
+__global__ void wmma_kernel(const G *a, const G *b, const G *c, G *d) {
+    using namespace nvcuda;
+
     for (size_t m = 0; m < M; ++m)
     {
         for (size_t n = 0; n < N; ++n)
         {
-            D[m][n] = C[m][n];
+            d[m * N + n] = c[m * N + n];
             for (size_t k = 0; k < K; ++k)
             {
-                D[m][n] += A[m][k] * B[k][n];
+                d[m * N + n] += a[m * K + k] * b[k * N + n];
             }
         }
     }
+    return;
+}
+
+/* Perform a matrix-multiply add operation: D = A * B + C */
+/* TODO Specialise for "accepted" variants on platform. */
+template<typename F, size_t M, size_t N, size_t K>
+void perform_mma(const F *a, const F *b, F *c, F *d)
+{
+    for (size_t m = 0; m < M; ++m)
+    {
+        for (size_t n = 0; n < N; ++n)
+        {
+            d[m * N + n] = c[m * N + n];
+            for (size_t k = 0; k < K; ++k)
+            {
+                d[m * N + n] += a[m * K + k] * b[k * N + n];
+            }
+        }
+    }
+    return ;
+//    /* TODO Assume the input matrices have been CUDA memory-mapped */
+//
+//    F *da;
+//    F *db;
+//    F *dc;
+//    F *dd;
+//
+//    cuda_check_errors(cudaHostGetDevicePointer(reinterpret_cast<void **>(&da), const_cast<F *>(&A[0]), 0));
+//    cuda_check_errors(cudaHostGetDevicePointer(reinterpret_cast<void **>(&db), const_cast<F *>(&B[0]), 0));
+//    cuda_check_errors(cudaHostGetDevicePointer(reinterpret_cast<void **>(&dc), const_cast<F *>(&C[0]), 0));
+//    cuda_check_errors(cudaHostGetDevicePointer(reinterpret_cast<void **>(&dd), const_cast<F *>(&D[0]), 0));
+//
+//    wmma_kernel<F, M, N, K><<<1, 1>>>(da, db, dc, dd);
+//    return;
 }
 
 template <typename F>
@@ -49,6 +77,23 @@ int Conv2D(int layer_idx, F *input, F *output)
     const size_t N = 8;
     const size_t K = 16;
 
+    // Fragments of weights, input, and output matrices
+    F *A;
+    F *B;
+    F *X;
+    F *D;
+
+    cuda_check_errors(cudaMallocHost(&A, M * K * sizeof(F)));
+    cuda_check_errors(cudaMallocHost(&B, K * N * sizeof(F)));
+    cuda_check_errors(cudaMallocHost(&X, M * N * sizeof(F)));
+    cuda_check_errors(cudaMallocHost(&D, M * N * sizeof(F)));
+
+
+//    cuda_check_errors(cudaHostRegister(const_cast<F*>(&A[0][0]), M * K * sizeof(F), cudaHostRegisterDefault));
+//    cuda_check_errors(cudaHostRegister(const_cast<F*>(&B[0][0]), K * N * sizeof(F), cudaHostRegisterDefault));
+//    cuda_check_errors(cudaHostRegister(const_cast<F*>(&X[0][0]), M * N * sizeof(F), cudaHostRegisterDefault));
+//    cuda_check_errors(cudaHostRegister(const_cast<F*>(&D[0][0]), M * N * sizeof(F), cudaHostRegisterDefault));
+
     // Initialise output with biases
     // for i in range(volume_of((OH, OW, FF))):
         // oh, ow, g = indices_of(i, (OH, OW, FF))
@@ -72,17 +117,13 @@ int Conv2D(int layer_idx, F *input, F *output)
             {
                 // A = np.zeros((M, K))
                 // B = np.zeros((K, N))
-                F A[M][K];
-                F B[K][N];
-                F X[M][N];
-                F D[M][N];
 
                 for (size_t m = 0; m < M; ++m)
                 {
                     for (size_t n = 0; n < N; ++n)
                     {
-                        X[m][n] = 0.0;
-                        D[m][n] = 0.0;
+                        X[m * N + n] = 0.0;
+                        D[m * N + n] = 0.0;
                     }
                 }
 
@@ -103,11 +144,11 @@ int Conv2D(int layer_idx, F *input, F *output)
                             size_t kc = (k + aw) % (CC) / 1;
                             // TODO Check weights[kh, kw, kc,:] is weights[k,:] and simplify
                             // A[ah, aw] = weights[kh, kw, c, g + ah]
-                            A[ah][aw] = net[layer_idx].weights[((kh * KW + kw) * CC + kc) * FF + (g + ah)];
+                            A[ah * K + aw] = net[layer_idx].weights[((kh * KW + kw) * CC + kc) * FF + (g + ah)];
                         }
                         else
                         {
-                            A[ah][aw] = 0.0;
+                            A[ah * K + aw] = 0.0;
                         }
 
                     }
@@ -140,17 +181,17 @@ int Conv2D(int layer_idx, F *input, F *output)
                             if (0 <= ih < IH && 0 <= iw < IW)
                             {
                                 // B[bh, bw] = input[ih, iw, c]
-                                B[bh][bw] = input[(ih * IW + iw) * CC + kc];
+                                B[bh * N + bw] = input[(ih * IW + iw) * CC + kc];
                             }
                             else
                             {
-                                B[bh][bw] = 0.0;
+                                B[bh * N + bw] = 0.0;
                             }
 
                         }
                         else
                         {
-                            B[bh][bw] = 0.0;
+                            B[bh * N + bw] = 0.0;
                         }
                     }
                 }
@@ -182,7 +223,7 @@ int Conv2D(int layer_idx, F *input, F *output)
                             size_t oh = (i + n) % (OH * OW) / OW;
                             size_t ow = (i + n) % OW / 1;
                             // output[oh, ow, g + m] += D[m, n]
-                            output[(oh * OW + ow) * FF + (g + m)] += D[m][n];
+                            output[(oh * OW + ow) * FF + (g + m)] += D[m * N + n];
                         }
                     }
                 }
@@ -195,6 +236,11 @@ int Conv2D(int layer_idx, F *input, F *output)
     {
         output[i] = net[layer_idx].actv_function(output[i]);
     }
+
+    cuda_check_errors(cudaFreeHost(A));
+    cuda_check_errors(cudaFreeHost(B));
+    cuda_check_errors(cudaFreeHost(X));
+    cuda_check_errors(cudaFreeHost(D));
 
     return 0;
 }

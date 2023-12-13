@@ -5,8 +5,22 @@
 #include <cuda_runtime.h>
 #include <stdio.h>
 #include <math.h>
+#include <mma.h>
 
 #include "inference.hpp"
+
+template< typename T >
+void cuda_check(T result, const char *const file, const int line)
+{
+    if (result)
+    {
+        fprintf(stderr, "CUDA error in %s:%d result=%d: %s\n", file, line, static_cast<unsigned int>(result), cudaGetErrorString(result));
+        exit(EXIT_FAILURE);
+    }
+}
+
+/// @brief Call CUDA function and check for errors
+#define cuda_check_errors(call) cuda_check ( (call), __FILE__, __LINE__ )
 
 {{#has_input}}{{>input_hpp}}{{/has_input}}
 
