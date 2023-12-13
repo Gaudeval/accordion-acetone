@@ -768,7 +768,7 @@ class TemplatedCodeGenerator(CodeGenerator):
             "activation_functions.cpp": ActivationFunctionSourceTemplate( (f.generate_c_definition(self.data_type) for f in activation_functions.values())),
             "inference.hpp": InferenceHeaderTemplate(self.layers),
             "inference.cpp": InferenceSourceTemplate(self.data_type),
-            "layers.cpp": LayersHeaderTemplate(
+            "layers.hpp": LayersHeaderTemplate(
                 has_input=any(isinstance(i, InputLayer) for i in self.layers),
                 has_convolution2D=any(isinstance(i, Conv2D) for i in self.layers),
                 has_max_pooling2D=any(isinstance(i, MaxPooling2D) for i in self.layers),
@@ -780,10 +780,6 @@ class TemplatedCodeGenerator(CodeGenerator):
             "main.cpp": MainTemplate(self.data_type),
         }
 
-        #
-        header_files = {Path(h).name for h in self.template_fragments.keys() if Path(h).suffix.lower() in self.HEADER_SUFFIXES}
-        source_files = {Path(c).name for c in self.template_fragments.keys() if Path(c).suffix.lower() in self.SOURCE_SUFFIXES}
-        self.template_fragments["Makefile"] = MakefileTemplate(source_files, header_files, self.function_name, "nvcc")
 
     def apply_template(self, template: TemplateSpec, renderer: Renderer, output_path: str | Path):
         print(f"Generating {output_path.name} using template {template.template_name}")
@@ -793,6 +789,11 @@ class TemplatedCodeGenerator(CodeGenerator):
     def generate_c_files(self, c_files_directory, force=False):
         c_files_root = Path(c_files_directory)
         renderer = Renderer(search_dirs=os.path.dirname(acetone.templates.__file__))
+
+        #
+        header_files = {Path(h).name for h in self.template_fragments.keys() if Path(h).suffix.lower() in self.HEADER_SUFFIXES}
+        source_files = {Path(c).name for c in self.template_fragments.keys() if Path(c).suffix.lower() in self.SOURCE_SUFFIXES}
+        self.template_fragments["Makefile"] = MakefileTemplate(source_files, header_files, self.function_name, "nvcc")
 
         for filename, template in self.template_fragments.items():
             self.apply_template(template, renderer, c_files_root / filename)
