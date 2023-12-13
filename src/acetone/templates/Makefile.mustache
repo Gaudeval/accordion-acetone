@@ -1,5 +1,5 @@
 CC = {{compiler}}
-CFLAGS = -g -w -lm
+CFLAGS = -g -w -lm -gencode arch=compute_70,code=sm_70
 
 SRC = {{#source_files}} {{.}} {{/source_files}}
 HEADERS = {{#header_files}} {{.}} {{/header_files}}
