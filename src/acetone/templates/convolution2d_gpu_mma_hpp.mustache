@@ -1,6 +1,6 @@
 
-template<typename G, size_t M, size_t N, size_t K>
-__global__ void wmma_kernel(const G *a, const G *b, const G *c, G *d) {
+template<typename F, size_t M, size_t N, size_t K>
+__global__ void wmma_kernel(const F *a, const F *b, const F *c, F *d) {
     using namespace nvcuda;
 
     for (size_t m = 0; m < M; ++m)
@@ -19,35 +19,35 @@ __global__ void wmma_kernel(const G *a, const G *b, const G *c, G *d) {
 
 /* Perform a matrix-multiply add operation: D = A * B + C */
 /* TODO Specialise for "accepted" variants on platform. */
+/* TODO Assume the input matrices have been CUDA memory-mapped */
 template<typename F, size_t M, size_t N, size_t K>
 void perform_mma(const F *a, const F *b, F *c, F *d)
 {
-    for (size_t m = 0; m < M; ++m)
+    F *da;
+    F *db;
+    F *dc;
+    F *dd;
+
+    cuda_check_errors(cudaMalloc(reinterpret_cast<void **>(&da), M * K * sizeof(F)));
+    cuda_check_errors(cudaMalloc(reinterpret_cast<void **>(&db), K * N * sizeof(F)));
+    cuda_check_errors(cudaMalloc(reinterpret_cast<void **>(&dc), M * N * sizeof(F)));
+    cuda_check_errors(cudaMalloc(reinterpret_cast<void **>(&dd), M * N * sizeof(F)));
+
+    cuda_check_errors(cudaMemcpy(da, a, M * K * sizeof(F), cudaMemcpyHostToDevice));
+    cuda_check_errors(cudaMemcpy(db, b, K * N * sizeof(F), cudaMemcpyHostToDevice));
+    cuda_check_errors(cudaMemcpy(dc, c, M * N * sizeof(F), cudaMemcpyHostToDevice));
+    cuda_check_errors(cudaMemcpy(dd, d, M * N * sizeof(F), cudaMemcpyHostToDevice));
+
+    wmma_kernel<F, M, N, K><<<1, 32>>>(da, db, dc, dd);
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess)
     {
-        for (size_t n = 0; n < N; ++n)
-        {
-            d[m * N + n] = c[m * N + n];
-            for (size_t k = 0; k < K; ++k)
-            {
-                d[m * N + n] += a[m * K + k] * b[k * N + n];
-            }
-        }
+        printf("Error: %s\n", cudaGetErrorString(err));
     }
-    return ;
-//    /* TODO Assume the input matrices have been CUDA memory-mapped */
-//
-//    F *da;
-//    F *db;
-//    F *dc;
-//    F *dd;
-//
-//    cuda_check_errors(cudaHostGetDevicePointer(reinterpret_cast<void **>(&da), const_cast<F *>(&A[0]), 0));
-//    cuda_check_errors(cudaHostGetDevicePointer(reinterpret_cast<void **>(&db), const_cast<F *>(&B[0]), 0));
-//    cuda_check_errors(cudaHostGetDevicePointer(reinterpret_cast<void **>(&dc), const_cast<F *>(&C[0]), 0));
-//    cuda_check_errors(cudaHostGetDevicePointer(reinterpret_cast<void **>(&dd), const_cast<F *>(&D[0]), 0));
-//
-//    wmma_kernel<F, M, N, K><<<1, 1>>>(da, db, dc, dd);
-//    return;
+
+    cuda_check_errors(cudaMemcpy(d, dd, M * N * sizeof(F), cudaMemcpyDeviceToHost));
+
+    return;
 }
 
 template <typename F>
@@ -77,23 +77,6 @@ int Conv2D(int layer_idx, F *input, F *output)
     const size_t N = 8;
     const size_t K = 16;
 
-    // Fragments of weights, input, and output matrices
-    F *A;
-    F *B;
-    F *X;
-    F *D;
-
-    cuda_check_errors(cudaMallocHost(&A, M * K * sizeof(F)));
-    cuda_check_errors(cudaMallocHost(&B, K * N * sizeof(F)));
-    cuda_check_errors(cudaMallocHost(&X, M * N * sizeof(F)));
-    cuda_check_errors(cudaMallocHost(&D, M * N * sizeof(F)));
-
-
-//    cuda_check_errors(cudaHostRegister(const_cast<F*>(&A[0][0]), M * K * sizeof(F), cudaHostRegisterDefault));
-//    cuda_check_errors(cudaHostRegister(const_cast<F*>(&B[0][0]), K * N * sizeof(F), cudaHostRegisterDefault));
-//    cuda_check_errors(cudaHostRegister(const_cast<F*>(&X[0][0]), M * N * sizeof(F), cudaHostRegisterDefault));
-//    cuda_check_errors(cudaHostRegister(const_cast<F*>(&D[0][0]), M * N * sizeof(F), cudaHostRegisterDefault));
-
     // Initialise output with biases
     // for i in range(volume_of((OH, OW, FF))):
         // oh, ow, g = indices_of(i, (OH, OW, FF))
@@ -117,6 +100,17 @@ int Conv2D(int layer_idx, F *input, F *output)
             {
                 // A = np.zeros((M, K))
                 // B = np.zeros((K, N))
+
+                // Fragments of weights, input, and output matrices
+                F *A;
+                F *B;
+                F *X;
+                F *D;
+
+                cuda_check_errors(cudaMallocHost(&A, M * K * sizeof(F)));
+                cuda_check_errors(cudaMallocHost(&B, K * N * sizeof(F)));
+                cuda_check_errors(cudaMallocHost(&X, M * N * sizeof(F)));
+                cuda_check_errors(cudaMallocHost(&D, M * N * sizeof(F)));
 
                 for (size_t m = 0; m < M; ++m)
                 {
@@ -199,14 +193,6 @@ int Conv2D(int layer_idx, F *input, F *output)
                 // D = mma(M, N, K, A, B, np.zeros((M, N)))
                 perform_mma<F, M, N, K>(A, B, X, D);
 
-                // # Copy result into output
-
-
-                        // # Each line is a filter
-                        // # Each column is an output element
-
-
-
                 // Copy result into output
                 // for m in range(M):
                 for (size_t m = 0; m < M; ++m)
@@ -227,6 +213,11 @@ int Conv2D(int layer_idx, F *input, F *output)
                         }
                     }
                 }
+
+                cuda_check_errors(cudaFreeHost(A));
+                cuda_check_errors(cudaFreeHost(B));
+                cuda_check_errors(cudaFreeHost(X));
+                cuda_check_errors(cudaFreeHost(D));
             }
         }
     }
@@ -236,11 +227,6 @@ int Conv2D(int layer_idx, F *input, F *output)
     {
         output[i] = net[layer_idx].actv_function(output[i]);
     }
-
-    cuda_check_errors(cudaFreeHost(A));
-    cuda_check_errors(cudaFreeHost(B));
-    cuda_check_errors(cudaFreeHost(X));
-    cuda_check_errors(cudaFreeHost(D));
 
     return 0;
 }
