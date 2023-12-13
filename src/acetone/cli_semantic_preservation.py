@@ -99,8 +99,7 @@ def main(reference_file, c_file, nb_tests, precision):
     print("   Max absolute error for %s test(s): %s" % (nb_tests, max_diff_file))
 
 
-if __name__ == "__main__":
-
+def cli():
     parser = argparse.ArgumentParser(description='Program to verify the semantic preservation of ')
 
     parser.add_argument("reference_file", help="File with the inference output of the reference machine learning framework")
@@ -116,3 +115,7 @@ if __name__ == "__main__":
         precision = 'float'
 
     main(args.reference_file, args.c_file, args.nb_tests, precision)
+
+
+if __name__ == "__main__":
+    cli()

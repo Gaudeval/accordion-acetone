@@ -42,9 +42,8 @@ def main(model_file, test_dataset_file, function_name, nb_tests, version, output
     net.generate_c_files(output_dir, force=force)
     net.compute_inference(output_dir)
 
-    
-if __name__ == "__main__":
 
+def cli():
     parser = argparse.ArgumentParser(description='C code generator for neural networks')
 
     parser.add_argument("model_file", help="Input file that describes the neural network model")
@@ -58,3 +57,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     main(args.model_file, args.test_dataset_file, args.function_name, args.nb_tests, args.version, args.output_dir, args.force)
+
+    
+if __name__ == "__main__":
+    cli()

@@ -56,8 +56,9 @@ dev = []
 
 # Declare executable scripts to be installed
 # https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#creating-executable-scripts
-#[project.scripts]
-#spam-cli = "spam:main_cli"
+[project.scripts]
+acetone-codegen = "acetone.cli_codegen:cli"
+acetone-diff = "acetone.cli_semantic_preservation:cli"
 
 [project.urls]
 "Homepage" = "https://github.com/idealbuq/NNCodeGenerator"
