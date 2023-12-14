@@ -24,7 +24,7 @@ void cuda_check(T result, const char *const file, const int line)
 
 {{#has_input}}{{>input_hpp}}{{/has_input}}
 
-{{#has_convolution2D}}{{>convolution2D_gpu_mma_hpp}}{{/has_convolution2D}}
+{{#has_convolution2D}}{{>convolution2D_mma_gpu_hpp}}{{/has_convolution2D}}
 
 {{#has_max_pooling2D}}{{>maxpooling2D_hpp}}{{/has_max_pooling2D}}
 

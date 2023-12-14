@@ -106,7 +106,7 @@ class MmaLayersHeaderTemplate(LayersHeaderTemplate):
 
 
 class GpuMmaLayersHeaderTemplate(LayersHeaderTemplate):
-    template_name = "layers_gpu_mma_hpp"
+    template_name = "layers_mma_gpu_hpp"
 
 
 class GlobalsTemplate(pystache.TemplateSpec):
