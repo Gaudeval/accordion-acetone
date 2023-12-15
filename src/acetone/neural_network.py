@@ -822,7 +822,9 @@ class GpuMmaTemplatedCodeGenerator(TemplatedCodeGenerator):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.version = "v7"
+        self.variant = kwargs.get("variant", "1")
         self.template_fragments["layers.hpp"] = GpuMmaLayersHeaderTemplate(
+            variant = self.variant,
             has_input=any(isinstance(i, InputLayer) for i in self.layers),
             has_convolution2D=any(isinstance(i, Conv2D) for i in self.layers),
             has_max_pooling2D=any(isinstance(i, MaxPooling2D) for i in self.layers),

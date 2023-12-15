@@ -24,7 +24,7 @@ from acetone.neural_network import CodeGenerator_V1, CodeGenerator_V2, CodeGener
     TemplatedCodeGenerator, MmaTemplatedCodeGenerator, GpuMmaTemplatedCodeGenerator
 
 
-def main(model_file, test_dataset_file, function_name, nb_tests, version, output_dir, force=False):
+def main(model_file, test_dataset_file, function_name, nb_tests, version, output_dir, force=False, variant=None):
 
     print("CODE GENERATOR FOR NEURAL NETWORKS")
 
@@ -39,7 +39,13 @@ def main(model_file, test_dataset_file, function_name, nb_tests, version, output
 
     codegen_class = version_mapping[version]
 
-    net = codegen_class(json_file = model_file, test_dataset_file = test_dataset_file, function_name = function_name, nb_tests = nb_tests)
+    net = codegen_class(
+        json_file = model_file,
+        test_dataset_file = test_dataset_file,
+        function_name = function_name,
+        nb_tests = nb_tests,
+        variant = variant,
+    )
     net.generate_c_files(output_dir, force=force)
     net.compute_inference(output_dir)
 
@@ -54,10 +60,11 @@ def cli():
     parser.add_argument("version", help="Version to be used for the code generation")
     parser.add_argument("output_dir", help="Output directory where generated files will be written")
     parser.add_argument("-f", "--force", help="Overwrite existing files", action="store_true")
+    parser.add_argument("--variant", help="Generator code variant")
 
     args = parser.parse_args()
 
-    main(args.model_file, args.test_dataset_file, args.function_name, args.nb_tests, args.version, args.output_dir, args.force)
+    main(args.model_file, args.test_dataset_file, args.function_name, args.nb_tests, args.version, args.output_dir, args.force, args.variant)
 
     
 if __name__ == "__main__":

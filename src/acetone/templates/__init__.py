@@ -108,6 +108,10 @@ class MmaLayersHeaderTemplate(LayersHeaderTemplate):
 class GpuMmaLayersHeaderTemplate(LayersHeaderTemplate):
     template_name = "layers_mma_gpu_hpp"
 
+    def __init__(self, variant = "1", **kwargs):
+        super().__init__(**kwargs)
+        self.variant = variant
+
 
 class GlobalsTemplate(pystache.TemplateSpec):
     template_name = "global_vars_c"
