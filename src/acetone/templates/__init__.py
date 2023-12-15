@@ -105,12 +105,27 @@ class MmaLayersHeaderTemplate(LayersHeaderTemplate):
     template_name = "layers_mma_hpp"
 
 
+class GpuMmaConvolution2Dv0(LayersHeaderTemplate):
+    template_name = "convolution2d_mma_gpu_hpp"
+
+
 class GpuMmaLayersHeaderTemplate(LayersHeaderTemplate):
     template_name = "layers_mma_gpu_hpp"
 
-    def __init__(self, variant = "1", **kwargs):
+    def __init__(self, variant = None, **kwargs):
         super().__init__(**kwargs)
         self.variant = variant
+
+    def convolution2D_implementation(self):
+        import os.path
+        import acetone.templates
+        renderer = pystache.Renderer(search_dirs=os.path.dirname(acetone.templates.__file__))
+
+        match self.variant:
+            case "0" | None | _:
+                t = pystache.TemplateSpec()
+                t.template_name = "convolution2d_mma_gpu_hpp"
+                return renderer.render(t)
 
 
 class GlobalsTemplate(pystache.TemplateSpec):
