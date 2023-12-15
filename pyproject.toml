@@ -38,13 +38,13 @@ classifiers = [
 # TODO Check the need for dev optional dependencies
 # TODO Add exo-lang to dependencies
 # TODO Add pystache to dependencies
-# [project]
-#dependencies = [
-#  "httpx",
-#  "gidgethub[httpx]>4.0.0",
-#  "django>2.1; os_name != 'nt'",
-#  "django>2.0; os_name == 'nt'",
-#]
+ [project]
+dependencies = [
+    "numpy==1.26.2",
+    "numpyencoder==0.3.0",
+    "tensorflow==2.14.0",
+    "pystache~=0.6.5",
+]
 #[project.optional-dependencies]
 #gui = ["PyQt5"]
 #cli = [
