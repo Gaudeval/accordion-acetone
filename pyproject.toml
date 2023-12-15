@@ -26,25 +26,22 @@ classifiers = [
     "Topic :: Software Development :: Embedded Systems",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
+# Declare requirements
+# https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#dependencies-and-requirements
+# TODO Check the need for dev optional dependencies
+dependencies = [
+    "numpy==1.26.2",
+    "numpyencoder==0.3.0",
+    "tensorflow==2.14.0",
+    "pystache~=0.6.5",
+    "exo-lang==0.0.2",
+]
 
 # TODO Reorganise folder to follow src layout and declare package
 # See tip https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html
 #[tool.setuptools]
 #packages = ["my_package"]
 
-# Declare requirements
-# https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#dependencies-and-requirements
-# TODO Check the need to duplicate the requirements.txt contents
-# TODO Check the need for dev optional dependencies
-# TODO Add exo-lang to dependencies
-# TODO Add pystache to dependencies
- [project]
-dependencies = [
-    "numpy==1.26.2",
-    "numpyencoder==0.3.0",
-    "tensorflow==2.14.0",
-    "pystache~=0.6.5",
-]
 #[project.optional-dependencies]
 #gui = ["PyQt5"]
 #cli = [
