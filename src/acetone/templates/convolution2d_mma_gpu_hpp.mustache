@@ -1,20 +1,56 @@
 
 template<typename F, size_t M, size_t N, size_t K>
-__global__ void wmma_kernel(const F *a, const F *b, const F *c, F *d) {
+__global__ void wmma_kernel(__half *ha, __half *hb, const F* a, const F* b, const F *c, F *d) {
     using namespace nvcuda;
 
-    for (size_t m = 0; m < M; ++m)
+    __shared__ __half ah[M * K];
+
+    for (size_t i = 0; i < M * K; ++i)
     {
-        for (size_t n = 0; n < N; ++n)
-        {
-            d[m * N + n] = c[m * N + n];
-            for (size_t k = 0; k < K; ++k)
-            {
-                d[m * N + n] += a[m * K + k] * b[k * N + n];
-            }
-        }
+        ha[i] = __half(a[i]);
+        ah[i] = ha[i];
     }
-    return;
+
+    for (size_t i = 0; i < K * N; ++i)
+    {
+        hb[i] = __half(b[i]);
+    }
+
+
+//    for (size_t m = 0; m < M; ++m)
+//    {
+//        for (size_t n = 0; n < N; ++n)
+//        {
+//            d[m * N + n] = c[m * N + n];
+//            for (size_t k = 0; k < K; ++k)
+//            {
+//                d[m * N + n] += float(ha[m * K + k] * hb[k * N + n]);
+//            }
+//        }
+//    }
+//    return;
+
+    // Declare the fragments
+    wmma::fragment<wmma::matrix_a, M, N, K, __half, wmma::row_major> a_frag;
+    wmma::fragment<wmma::matrix_b, M, N, K, __half, wmma::row_major> b_frag;
+    wmma::fragment<wmma::accumulator, M, N, K, float> c_frag;
+    wmma::fragment<wmma::accumulator, M, N, K, float> d_frag;
+
+    // Initialize the output to zero
+    wmma::fill_fragment(d_frag, 0.0f);
+
+    // Load the inputs and accumulator
+    wmma::load_matrix_sync(a_frag, ha, K);
+    wmma::load_matrix_sync(b_frag, hb, N);
+    wmma::load_matrix_sync(c_frag, const_cast<float*>(c), N, wmma::mem_row_major);
+
+    // Perform the matrix multiplication
+    wmma::mma_sync(d_frag, a_frag, b_frag, c_frag);
+
+    // Store the output
+    wmma::store_matrix_sync(d, d_frag, N, wmma::mem_row_major);
+
+
 }
 
 /* Perform a matrix-multiply add operation: D = A * B + C */
@@ -23,22 +59,26 @@ __global__ void wmma_kernel(const F *a, const F *b, const F *c, F *d) {
 template<typename F, size_t M, size_t N, size_t K>
 void perform_mma(const F *a, const F *b, F *c, F *d)
 {
-    F *da;
-    F *db;
+    __half *da;
+    __half *db;
+    F *dda;
+    F *ddb;
     F *dc;
     F *dd;
 
-    cuda_check_errors(cudaMalloc(reinterpret_cast<void **>(&da), M * K * sizeof(F)));
-    cuda_check_errors(cudaMalloc(reinterpret_cast<void **>(&db), K * N * sizeof(F)));
+    cuda_check_errors(cudaMalloc(reinterpret_cast<void **>(&da), M * K * sizeof(__half)));
+    cuda_check_errors(cudaMalloc(reinterpret_cast<void **>(&db), K * N * sizeof(__half)));
+    cuda_check_errors(cudaMalloc(reinterpret_cast<void **>(&dda), M * K * sizeof(F)));
+    cuda_check_errors(cudaMalloc(reinterpret_cast<void **>(&ddb), K * N * sizeof(F)));
     cuda_check_errors(cudaMalloc(reinterpret_cast<void **>(&dc), M * N * sizeof(F)));
     cuda_check_errors(cudaMalloc(reinterpret_cast<void **>(&dd), M * N * sizeof(F)));
 
-    cuda_check_errors(cudaMemcpy(da, a, M * K * sizeof(F), cudaMemcpyHostToDevice));
-    cuda_check_errors(cudaMemcpy(db, b, K * N * sizeof(F), cudaMemcpyHostToDevice));
+    cuda_check_errors(cudaMemcpy(dda, a, M * K * sizeof(F), cudaMemcpyHostToDevice));
+    cuda_check_errors(cudaMemcpy(ddb, b, K * N * sizeof(F), cudaMemcpyHostToDevice));
     cuda_check_errors(cudaMemcpy(dc, c, M * N * sizeof(F), cudaMemcpyHostToDevice));
     cuda_check_errors(cudaMemcpy(dd, d, M * N * sizeof(F), cudaMemcpyHostToDevice));
 
-    wmma_kernel<F, M, N, K><<<1, 32>>>(da, db, dc, dd);
+    wmma_kernel<F, M, N, K><<<1, 32>>>(da, db, dda, ddb, dc, dd);
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess)
     {
@@ -46,8 +86,6 @@ void perform_mma(const F *a, const F *b, F *c, F *d)
     }
 
     cuda_check_errors(cudaMemcpy(d, dd, M * N * sizeof(F), cudaMemcpyDeviceToHost));
-
-    return;
 }
 
 template <typename F>
