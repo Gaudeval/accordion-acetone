@@ -1,3 +1,4 @@
+setuptools>=61.0
 numpy==1.26.2
 numpyencoder==0.3.0
 tensorflow==2.14.0
