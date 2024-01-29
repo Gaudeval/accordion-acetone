@@ -30,11 +30,11 @@ def clean(c):
         c.run("rm -Rf ../output")
         c.run("rm -Rf ../data/example")
 
-@task
+@task(clean)
 def init(c):
     c.run('python3 ../init/initial_setup.py')
 
-@task
+@task(init)
 def gen(c):
     command = "python3.12 -m acetone.cli_codegen"
     model = "../data/example/lenet5.json"
@@ -48,16 +48,13 @@ def gen(c):
       c.run('mkdir -p '+output.replace('{{vx}}','v'+str(i)))
       c.run(' '.join(args).replace('{{vx}}','v'+str(i)))
 
-@task
+@task(gen)
 def build(c):
     for i in range(1,3):
       path = os.getcwd()+'/../output/acetone/example/v'+str(i)
       c.run('make -C '+os.path.abspath(path))
       c.run(os.path.abspath(path+'/lenet5')+' '+os.path.abspath(path+'/log.txt'))
 
-@task
+@task(build)
 def all(c):
-    clean(c)
-    init(c)
-    gen(c)
-    build(c)
+    pass
